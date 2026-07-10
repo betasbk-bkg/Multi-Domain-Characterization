@@ -1,5 +1,0 @@
-dataset,mode,role,fit_family,aic,n_obs_max,n90,n90_ci_low,n90_ci_high,n95,n95_ci_low,n95_ci_high,n99,n99_ci_low,n99_ci_high,n99_flag,fit_warning,input_mode
-CIFAR-10H,gold_accuracy,primary_saturating_validation,michaelis,-607.8675791056065,50,11.0,11.0,11.0,22.0,22.0,22.0,107.0,106.0,108.0,extrapolated,identified;identified;identified,RAW_ITEM_LEVEL_HIERARCHICAL_BOOTSTRAP
-ChaosNLI,reference_distribution,primary_saturating_validation,michaelis,-1026.2544994555594,50,14.0,13.0,16.0,27.0,26.0,31.0,135.0,128.0,156.025,extrapolated,identified;identified;identified,RAW_ITEM_LEVEL_HIERARCHICAL_BOOTSTRAP
-Snapshot_Serengeti,gold_accuracy,supporting_citizen_science_evidence,michaelis,-165.3967484985384,21,15.0,14.0,15.0,30.0,29.0,31.0,149.0,143.0,154.0,extrapolated,identified;identified;identified,RAW_ITEM_LEVEL_HIERARCHICAL_BOOTSTRAP
-CIFAR-10H,reference_distribution,sensitivity_supporting,log_saturating,-476.28252647937427,25,,21.475,178.89999999999995,,42.95,716.5999999999998,,213.175,400.69999999999993,not_identified,non_identifiable_within_search;non_identifiable_within_search;non_identifiable_within_search,RAW_ITEM_LEVEL_HIERARCHICAL_BOOTSTRAP
