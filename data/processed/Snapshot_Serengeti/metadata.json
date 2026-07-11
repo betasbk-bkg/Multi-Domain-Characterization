@@ -1,0 +1,11 @@
+{
+  "dataset_name": "Snapshot_Serengeti",
+  "mode_candidates": [
+    "gold_accuracy"
+  ],
+  "license_or_terms": "Community Data License Agreement - Permissive variant for LILA Snapshot Serengeti distribution.",
+  "citation": "Swanson, A. B., Kosmala, M., Lintott, C. J., Simpson, R. J., Smith, A., & Packer, C. (2015). Snapshot Serengeti, high-frequency annotated camera trap images of 40 mammalian species in an African savanna. Scientific Data, 2, 150026. LILA dataset page: https://lila.science/datasets/snapshot-serengeti",
+  "download_or_source_notes": "Downloaded gold_standard_data.csv and raw_data_for_dryad.csv.zip from the LILA Snapshot Serengeti metadata addendum. Standardized only capture events present in expert gold.",
+  "notes_on_label_independence": "Raw metadata has one record per unique user, capture event, and species. Multiple species rows from the same ClassificationID/UserID/CaptureEventID were collapsed into one sorted species-set label.",
+  "known_biases_or_filters": "Primary analysis is restricted to the expert-gold subset. Species-set labels ignore count and behavior fields. Human labels may be present in metadata, consistent with LILA note that images were removed but metadata retains labels."
+}
