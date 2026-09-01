@@ -1,2 +1,0 @@
-n_items,n_labels_total,mean_labels_per_item,median_labels_per_item,min_labels_per_item,max_labels_per_item,n_items_ge_10,n_items_ge_20,n_items_ge_50,has_gold
-10000.0,514200.0,51.42,51.0,50.0,63.0,10000.0,10000.0,10000.0,True
