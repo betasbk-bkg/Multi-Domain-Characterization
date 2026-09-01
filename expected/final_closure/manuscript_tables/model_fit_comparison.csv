@@ -1,0 +1,13 @@
+dataset,mode,fit_family,aic,delta_aic,residual_rmse,residual_pattern_flag,admissible_flag,notes
+CIFAR-10H,gold_accuracy,michaelis,-607.8675791056065,0.0,0.0019037019593267637,ok,True,fit_ok
+CIFAR-10H,gold_accuracy,log_saturating,-581.262056035793,26.605523069813557,0.002497487732042044,ok,True,fit_ok
+CIFAR-10H,gold_accuracy,inverse_sqrt,-566.3053674846329,41.562211620973585,0.002909276981549338,ok,True,fit_ok
+ChaosNLI,reference_distribution,michaelis,-1026.2544994555594,0.0,2.6637004078871422e-05,ok,True,fit_ok
+ChaosNLI,reference_distribution,log_saturating,-567.8400227151315,458.414476740428,0.002864073302197146,ok,True,fit_ok
+ChaosNLI,reference_distribution,inverse_sqrt,-532.7604884768134,493.494010978746,0.004096771703297291,ok,True,fit_ok
+Snapshot_Serengeti,gold_accuracy,michaelis,-165.3967484985384,0.0,0.013774741190564188,ok,True,fit_ok
+Snapshot_Serengeti,gold_accuracy,log_saturating,-157.54762650063049,7.8491219979079005,0.016761165219375842,ok,True,fit_ok
+Snapshot_Serengeti,gold_accuracy,inverse_sqrt,-155.04578441042023,10.350964088118161,0.017842989192004624,ok,True,fit_ok
+CIFAR-10H,reference_distribution,michaelis,-409.01698273664573,67.26554374272854,0.0001757958568588373,ok,True,fit_ok
+CIFAR-10H,reference_distribution,log_saturating,-476.28252647937427,0.0,4.32915697898102e-05,ok,True,fit_ok
+CIFAR-10H,reference_distribution,inverse_sqrt,-439.81798374122,36.46454273815425,9.253952926965095e-05,ok,True,fit_ok

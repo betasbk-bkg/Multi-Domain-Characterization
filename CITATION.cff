@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+title: "Paper B full reproduction package"
+version: "1.2.0"
+doi: 10.5281/zenodo.CONCEPT_DOI_TO_BE_INSERTED
+type: software
+authors:
+  - family-names: Song
+    given-names: Bong-Keun
+    email: bongkeun.song@fau.de
+    affiliation: "Friedrich-Alexander-Universitaet Erlangen-Nuernberg (FAU), Erlangen, Germany"
+license: CC-BY-4.0
+repository-code: "https://github.com/betasbk-bkg/Multi-Domain-Characterization"
+message: "If you use this package, cite the accompanying Paper B manuscript. The DOI above is the concept DOI and always resolves to the latest version; cite a specific release with its own version DOI."

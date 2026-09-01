@@ -1,0 +1,31 @@
+{
+  "dataset": "Snapshot_Serengeti",
+  "mode": "gold_accuracy",
+  "metric": "jsd",
+  "B": 200,
+  "seed": 20260709,
+  "Ns": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21
+  ],
+  "N_budget_primary": 21,
+  "warning": "Stage 8 curve bootstrap; final closure uses fitted N_sat and bootstrap uncertainty propagation."
+}

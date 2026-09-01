@@ -1,0 +1,12 @@
+{
+  "dataset_name": "CIFAR-10H",
+  "mode_candidates": [
+    "gold_accuracy",
+    "reference_distribution"
+  ],
+  "license_or_terms": "Creative Commons BY-NC-SA 4.0 for CIFAR-10H human labels; CIFAR-10 image/original label data from University of Toronto CIFAR-10 source.",
+  "citation": "Peterson, J. C., Battleday, R. M., Griffiths, T. L., & Russakovsky, O. (2019). Human uncertainty makes classification more robust. ICCV. CIFAR-10H GitHub release: https://github.com/jcpeterson/cifar-10h",
+  "download_or_source_notes": "Downloaded data/cifar10h-raw.zip from the official jcpeterson/cifar-10h GitHub repository. Attention-check rows and negative image indices excluded.",
+  "notes_on_label_independence": "Rows are individual Amazon Turk annotator trials; annotator IDs are anonymized release IDs. Each CIFAR-10 test image has repeated independent human labels after filtering.",
+  "known_biases_or_filters": "Primary filter removes attention checks. Gold labels are CIFAR-10 benchmark labels, not human consensus."
+}
