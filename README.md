@@ -6,17 +6,26 @@ fitted-saturation closure tables, the utility summaries, the legacy supporting
 JSON outputs, the replicate-level fitted constants of the appendix, and the
 manuscript-facing figure PNGs from the bundled canonical inputs.
 
-Cite all versions of this package with the concept DOI
-`10.5281/zenodo.CONCEPT_DOI_TO_BE_INSERTED`, which always resolves to the latest
-version. The accompanying manuscript cites the version DOI of the release it was
-submitted with, so that the printed numbers and the archived code stay pinned to
-each other.
+Version: v1.2.0
+
+Author: Bongkeun Song
+Affiliation: Friedrich-Alexander-Universität Erlangen-Nürnberg (FAU), Germany
+ORCID: 0009-0008-3120-8126
+
+Archived release: https://doi.org/10.5281/zenodo.21320155 — the
+concept DOI, which always resolves to the latest version. The version archived with
+the manuscript is release tag **v1.2.0**.
 
 ## Changes in v1.2.0
 
 v1.2.0 adds the material the revised manuscript relies on. No previously reported
 number changes.
 
+- `scripts/revision_quantities.py` (new). Regenerates the derived quantities that appear only in
+  the manuscript prose: the runner-up family's asymptote, the effect of shortening the estimation
+  grid on K and on the continuous stopping ratio, the shortfall of a fixed annotation redundancy
+  against the achievable normalized gain, and the item coverage of the estimation grid. Earlier
+  versions did not produce these, so a reader could not check them.
 - `scripts/refit_replicate_constants.py` (new). Refits the Michaelis-Menten family
   to each of the B = 200 bootstrap replicate curves and writes the half-saturation
   constant K with its percentile interval, the derived reference N95 = 20 + 19K,
@@ -185,6 +194,7 @@ replicate curves rather than the closure tables:
 
 ```bash
 python scripts/refit_replicate_constants.py
+python scripts/revision_quantities.py
 ```
 
 ## Scope

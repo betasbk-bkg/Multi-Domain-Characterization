@@ -1,12 +1,25 @@
-Paper B reproduction package license and third-party notice.
+Paper B reproduction package — license and third-party notice
 
-The analysis scripts, packaging metadata, and derived manuscript-facing outputs
-are provided for reproducibility of the accompanying Paper B manuscript.
+Copyright (c) 2026 Bongkeun Song
+
+The analysis scripts, packaging metadata, standardized canonical inputs, and
+derived manuscript-facing outputs in this repository are released under the
+Creative Commons Attribution 4.0 International License (CC BY 4.0).
+You are free to share and adapt this material for any purpose, including
+commercially, provided that appropriate credit is given.
+Full text: https://creativecommons.org/licenses/by/4.0/
+
+This is the license recorded for the archived releases of this package on
+Zenodo and declared in CITATION.cff.
+
+Third-party notice
 
 Third-party datasets, article-derived numeric tables, digitized curves, and
 legacy inputs remain subject to their original licenses, citation requirements,
 and terms of use. This release does not relicense those third-party materials
 and does not claim to redistribute complete raw third-party datasets.
-
-The standardized canonical inputs included here are provided only to make the
-submitted Paper B analyses exactly reproducible from the archived package.
+In particular: CIFAR-10H human labels are used under CC BY-NC-SA 4.0; ChaosNLI
+under CC-NC 4.0; and the Snapshot Serengeti distribution under the Community
+Data License Agreement, permissive variant. The standardized canonical inputs
+included here are provided only to make the submitted Paper B analyses exactly
+reproducible from the archived package.

@@ -1,32 +1,29 @@
 """
 ========================================================================
-Paper B — Snow et al. (2008) Analytical Experiments
-"Utility-Based Stopping Interpretation in Bounded Collective Systems"
+Paper B - Snow et al. (2008) bridge re-analysis
+Supporting component for the utility-stopping characterization
 
-BongKeun Song | FAU | 2026.05
+Bongkeun Song | FAU | 2026
 
-데이터 소스:
-  Snow et al. (2008) "Cheap and Fast — But is it Good?"
-  EMNLP 2008. Figures 1-5 + Table 2 digitized.
+Data source:
+  Snow et al. (2008), "Cheap and fast - but is it good?", EMNLP 2008.
+  Figures 1-5 and Table 2, digitized (five annotation tasks, N = 2..10).
 
-실험 목적:
-  annotation aggregation 도메인에서
-  Paper B의 utility-based stopping framework를 검증한다.
+Utility rule (manuscript rule (1), identical across the legacy scripts):
+  U(N) = lambda * S(N) - (1 - lambda) * N / N_budget
+  S(N)     normalized fitted gain against the component's own reference
+  lambda   performance weight
+  N_budget largest N reported by the source (10 for every task)
 
-Utility 정의 (Bingöl 코드와 완전 통일):
-  U(N) = λ·C(N) - (1-λ)·N/N_max
-  λ  : performance weight
-  N_max : budget ceiling (domain별 설정)
-
-실험 구성:
-  PS_S1 : Ceiling fit (inverse-sqrt + competing models + AIC/BIC)
-  PS_S2 : Utility-optimal N* computation
-  PS_S3 : ε-stopping ↔ utility-stopping bridge
-  PS_S4 : Failure regime analysis (α > 1.0 케이스 명시)
-  PS_S5 : GO/NO-GO checklist
+Stages:
+  PS_S1 : legacy five-family ceiling fit (retained for comparison with v1.0.7)
+  PS_S2 : legacy utility-optimal N* under the v1.0.7 raw-performance rule
+  PS_S3 : harmonized epsilon-to-lambda bridge under rule (1); this is the
+          stage the manuscript reports
+  PS_S4 : ceiling-identifiability failure cases
+  PS_S5 : summary checklist
 
 Output: paperB_snow_results.json + paperB_snow_figures.png
-
 Dependencies: numpy, scipy, matplotlib
 ========================================================================
 """
@@ -254,17 +251,10 @@ def marginal_gain_discrete(C_arr, idx):
 # SECTION 2: EXPERIMENT PS_S1 — Ceiling Fit + AIC/BIC
 # ====================================================================
 """
-목적: Snow 5개 태스크에서 ceiling model fit + competing model 비교.
-
-왜 필요한가:
-  Paper B의 inverse-sqrt model이 annotation domain에서도 성립하는지,
-  그리고 다른 saturation model 대비 AIC/BIC 우위가 있는지 확인.
-
-무엇을 증명하는가:
-  ① diminishing return 구조 존재 (β/√N trend 관찰)
-  ② ceiling α 식별 가능 여부 (α > 1.0 extrapolation 문제 명시)
-  ③ inverse-sqrt vs 경쟁 모델 AIC/BIC 비교
-  ④ Affect task: α < 1.0 자연 수렴 → 가장 강한 케이스
+PS_S1: legacy ceiling fit on the five digitized tasks with five candidate
+families and AIC/BIC comparison. Kept so that v1.0.7 outputs remain
+reproducible; the manuscript uses the harmonized refit in PS_S3, which
+restricts to the three admissible families.
 """
 def run_PS_S1():
     print("=" * 68)
@@ -360,18 +350,9 @@ def run_PS_S1():
 # SECTION 3: EXPERIMENT PS_S2 — Utility-Optimal N*
 # ====================================================================
 """
-목적: annotation 도메인에서 utility-optimal N* 계산.
-
-왜 필요한가:
-  Snow 데이터는 N=2~10으로 매우 좁다. N* 계산은 ceiling fit으로
-  외삽된 곡선 위에서 수행한다. 이 외삽의 불확실성을 명시하면서
-  utility stopping structure가 존재하는지 확인한다.
-
-무엇을 증명하는가:
-  ① N* ≤ N_max 범위에서 utility optimum 존재
-  ② λ에 따른 N* 민감도 (robustness 간접 확인)
-  ③ Affect task: ceiling α=0.793 → N*가 안정적 → Paper B 적합
-  ④ 나머지 4개 태스크: α > 1.0 extrapolation → N* 불안정 → limitation으로 처리
+PS_S2: legacy utility-optimal N* under the v1.0.7 rule (raw C(N), source
+N_max of 50 or 20). Retained for comparison only; the observed range is
+N = 2..10, so these optima lie on an extrapolated curve and are not reported.
 """
 def run_PS_S2(ps_s1_results):
     print("=" * 68)
@@ -433,18 +414,11 @@ def run_PS_S2(ps_s1_results):
 # SECTION 4: EXPERIMENT PS_S3 — ε-stopping ↔ Utility Bridge
 # ====================================================================
 """
-목적: Snow의 학습 곡선에서 ε-stopping과 utility stopping 수치 비교.
-
-왜 필요한가:
-  PB_B5 (Bingöl)와 같은 분석을 annotation 도메인에서 재현한다.
-  두 도메인에서 같은 구조가 나오면 Paper B contribution 강화.
-
-무엇을 증명하는가:
-  ① ε 기준으로 멈추는 N (gain < ε)
-  ② 같은 N에서 멈추는 λ_equiv 역산
-  ③ λ_equiv ∈ [0.2, 0.99] 이면 "valid bridge" 성립
-  ④ Affect: ceiling 안정 → bridge 신뢰도 높음
-  ④ 나머지 4개: extrapolation 범위 밖 → bridge 약함 → limitation 명시
+PS_S3: harmonized epsilon-to-lambda bridge. Refit each task with the three
+admissible families, select by AIC, find the N inside the observed range at
+which the marginal gain first drops below epsilon, and back out the lambda at
+which rule (1) stops at the same N. A task yields a bridge value only if the
+threshold is reached inside the observed range.
 """
 def run_PS_S3(ps_s2_results):
     print("=" * 68)
@@ -521,18 +495,9 @@ def run_PS_S3(ps_s2_results):
 # SECTION 5: EXPERIMENT PS_S4 — Failure Regime Analysis
 # ====================================================================
 """
-목적: ceiling 식별 실패 케이스를 명시하고 failure 조건을 characterize한다.
-
-왜 필요한가:
-  Paper B Master 문서에서 "ceiling identifiability" 문제가 핵심 약점으로
-  지목됐다. 이걸 숨기면 안 되고, 오히려 "어떤 조건에서 붕괴하는가"를
-  boundary condition으로 명시해야 Sci Rep / Q1 reviewer가 수용한다.
-
-무엇을 증명하는가:
-  ① N 범위가 너무 좁으면 (N_max_observed << N_99pct) ceiling 식별 실패
-  ② binary accuracy task (WSD): 포화가 너무 빠름 → β 추정 불안정
-  ③ Affect: bounded ceiling → failure 없음 → Paper B의 신뢰 anchor
-  ④ failure condition 정량화: N_obs_max / N_99pct < 0.5 이면 위험
+PS_S4: ceiling-identifiability failure cases. Records tasks whose observed N
+range is short relative to the fitted N99 and whose ceiling is therefore not
+identified from the data; these are reported as limitations, not used.
 """
 def run_PS_S4(ps_s1_results):
     print("=" * 68)
@@ -721,7 +686,7 @@ def make_figures(s1, s2, s3, s4):
 
 
 # ====================================================================
-# SECTION 7: MAIN + GO/NO-GO
+# SECTION 7: MAIN + SUMMARY CHECKLIST
 # ====================================================================
 def main():
     t0 = time.time()
@@ -760,9 +725,9 @@ def main():
                                      else x))
     print(f"\n  Results saved: {json_path}")
 
-    # ── GO/NO-GO ──
+    # ── Summary checklist ──
     print("\n" + "=" * 68)
-    print("  PAPER B GO/NO-GO — Snow Domain")
+    print("  SUMMARY CHECKLIST — Snow component")
     print("=" * 68)
 
     checks = []
@@ -805,7 +770,7 @@ def main():
     all_pass = all(ok for _, ok in checks)
     print(f"\n  Note: Only Affect is Paper B backbone for Snow domain.")
     print(f"        Other 4 tasks → 'supporting structure evidence' only.")
-    print(f"\n  Overall: {'GO (conditional on Affect results)' if all_pass else 'FAIL'}")
+    print(f"\n  Overall: {'all checks passed' if all_pass else 'a check failed'}")
     print(f"  Runtime: {time.time()-t0:.1f}s\n")
 
 

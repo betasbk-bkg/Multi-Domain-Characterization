@@ -1,27 +1,26 @@
 """
 ========================================================================
-Paper B — Bingöl (2026) Analytical Experiments
-"Utility-Based Stopping Interpretation in Bounded Collective Systems"
+Paper B - Atasoy Bingol et al. (2026) retrograde re-analysis
+Supporting component for the utility-stopping characterization
 
-BongKeun Song | FAU | 2026.05
+Bongkeun Song | FAU | 2026
 
-실험 목적:
-  Bingöl et al. (2026) 논문의 published parameters를 사용하여
-  Paper B의 utility-based stopping framework를 검증한다.
+Purpose:
+  Re-analyze the published parameters of Atasoy Bingol et al., IEEE Trans.
+  Syst. Man Cybern. Syst., 2026 (doi:10.1109/TSMC.2025.3649593) under
+  manuscript rule (1). Curves are reconstructed from the paper's Table I
+  (jury-theorem accuracies) and Table II (universal-scalability-law
+  parameters); no simulator is run.
 
-  이 스크립트는 simulation_main.py의 시뮬레이터를 사용하지 않는다.
-  Bingöl Table I / Table II에서 직접 곡선을 재구성한다.
-
-실험 구성:
-  PB_B1 : CJT saturating curves + ceiling fit     → 포화 구조 존재 확인
-  PB_B2 : USL retrograde curves + N_peak          → 물리적 stopping 경계
-  PB_B3 : Utility-optimal N* computation          → Paper B 핵심 결과
-  PB_B4 : Competing model comparison (AIC/BIC)    → inverse-sqrt 우위 검증
-  PB_B5 : ε-stopping ↔ utility-stopping bridge   → contribution 핵심 연결
+Stages:
+  PB_B1 : jury-theorem saturating curves + bounded ceiling fit
+  PB_B2 : universal-scalability-law retrograde curves + N_peak
+  PB_B3 : utility-optimal N* under rule (1) against N_peak
+  PB_B4 : competing-family AIC/BIC comparison
+  PB_B5 : epsilon-to-lambda bridge
 
 Output: paperB_bingol_results.json + paperB_bingol_figures.png
-
-Dependencies: numpy, scipy, matplotlib (standard)
+Dependencies: numpy, scipy, matplotlib
 ========================================================================
 """
 
@@ -49,7 +48,7 @@ warnings.filterwarnings('ignore')
 
 
 # ====================================================================
-# SECTION 0: BINGÖL DATA (직접 논문에서 추출, Table I & II)
+# SECTION 0: BINGOL DATA (taken directly from the paper, Tables I and II)
 # ====================================================================
 
 # --- Table I: Individual agent accuracy p ---
@@ -253,18 +252,10 @@ def marginal_gain(C_func, N):
 # SECTION 2: EXPERIMENT PB_B1 — CJT Ceiling Fit
 # ====================================================================
 """
-목적: CJT 곡선이 pre-saturation 구간에서 ceiling model a - b/√N에 fit되는가?
-
-왜 필요한가:
-  Paper B의 ceiling model이 실제 collective system에서 성립하는지
-  external validation이 필요하다. Bingöl의 CJT 시뮬레이션은
-  이 목적에 가장 적합한 데이터다 (published, reproducible, 실제 로봇 기반).
-
-무엇을 증명하는가:
-  ① CJT 곡선은 N이 증가할수록 포화한다 (diminishing return 구조 존재)
-  ② pre-saturation 구간에서 inverse-sqrt가 잘 fit된다
-  ③ ceiling α < 1.0 (bounded system의 physical upper limit)
-  ④ task difficulty(p)가 낮을수록 β(기울기)가 크다 → 더 많은 N이 필요
+PB_B1: fit the jury-theorem accuracy curves, reconstructed from Table I, with
+a bounded ceiling model. The fit is recorded together with its R^2 and the N
+at which it reaches 99% of its ceiling. In the manuscript this fit fails the
+R^2 > 0.95 acceptance criterion and is reported, not used.
 """
 def run_PB_B1():
     print("=" * 65)
@@ -331,18 +322,9 @@ def run_PB_B1():
 # SECTION 3: EXPERIMENT PB_B2 — USL Retrograde + N_peak
 # ====================================================================
 """
-목적: USL 곡선에서 N_peak를 계산하고, stopping structure를 확인한다.
-
-왜 필요한가:
-  Paper B는 'when to stop'이 핵심이다. Bingöl의 retrograde 곡선은
-  자연적인 stopping boundary를 가진다: N > N_peak에서 성능이 하락한다.
-  이 N_peak가 Paper B의 stopping theory와 어떻게 연결되는지 정량화해야 한다.
-
-무엇을 증명하는가:
-  ① N_peak = √((1-α)/β) 에서 성능이 최대화된다
-  ② N > N_peak에서 marginal gain < 0 → Bingöl의 idle-pool allocation 발생
-  ③ N_peak는 fill ratio(task difficulty)에 따라 달라진다
-  ④ 이 stopping structure가 Paper B의 framework 내에서 설명 가능하다
+PB_B2: reconstruct the universal-scalability-law curves from Table II and
+compute the performance peak N_peak = sqrt((1 - alpha) / beta) for each fill
+ratio. N_peak is the reference quantity for the retrograde regime.
 """
 def run_PB_B2():
     print("=" * 65)
@@ -399,21 +381,9 @@ def run_PB_B2():
 # SECTION 4: EXPERIMENT PB_B3 — Utility-Optimal N*
 # ====================================================================
 """
-목적: utility 함수로 N*를 계산하고 N_peak와 비교한다.
-
-왜 필요한가:
-  Paper B의 핵심 contribution은 "ε-stopping을 utility stopping으로
-  재해석"하는 것이다. 이를 위해:
-  1. N*_utility = argmax U(N) = argmax [λC(N) - (1-λ)N/N_max]
-  2. N*_utility vs N_peak 비교
-  만약 N*_utility ≤ N_peak 이면 → utility stopping이 물리적 degradation
-  이전에 이미 멈춘다 → "cost-aware early stopping"이 empirically valid.
-
-무엇을 증명하는가:
-  ① λ < 1 일 때 N*_utility < N_peak (핵심 결과)
-  ② λ → 1 일 때 N*_utility → N_peak (극한에서 수렴)
-  ③ λ 값이 Bingöl의 ε에 대응되는 수치 확인
-  ④ task difficulty에 따른 N* 변화 패턴
+PB_B3: utility-optimal N* under rule (1), with S(N) normalized against N_peak
+and N_budget = 29 (the largest swarm size the source simulates), for the four
+representative values of lambda. The reported quantity is N*/N_peak.
 """
 def run_PB_B3(pb_b2_results):
     print("=" * 65)
@@ -473,19 +443,8 @@ def run_PB_B3(pb_b2_results):
 # SECTION 5: EXPERIMENT PB_B4 — Competing Model Comparison (AIC/BIC)
 # ====================================================================
 """
-목적: inverse-sqrt model이 다른 saturation 모델보다 AIC/BIC 기준 우위인지 확인.
-
-왜 필요한가:
-  Paper B Master 문서 Section 6.2에서 "inverse-sqrt uniqueness 문제"가
-  핵심 위협으로 지적됐다. exponential/logistic/Michaelis-Menten이 비슷하게
-  fit된다면 Paper B의 수학적 기여가 없어진다. 이 실험은 그 위협에 대한
-  정량적 답이다.
-
-무엇을 증명하는가:
-  ① inverse-sqrt가 AIC/BIC 기준으로 경쟁 모델 대비 어느 위치에 있는가
-  ② ΔAIC > 2면 "meaningful difference", > 10이면 "very strong evidence"
-  ③ 모델 형태별 잔차 구조 분석 (systematic bias 여부)
-  ④ 어떤 regime(easy vs hard task)에서 inverse-sqrt가 강한가
+PB_B4: AIC/BIC comparison of the saturating families on the jury-theorem
+curves, with residual structure recorded per family.
 """
 def run_PB_B4():
     print("=" * 65)
@@ -588,20 +547,10 @@ def run_PB_B4():
 # SECTION 6: EXPERIMENT PB_B5 — ε-stopping ↔ Utility-stopping Bridge
 # ====================================================================
 """
-목적: Bingöl의 ε-stopping과 Paper B의 utility-stopping이 수치적으로 등가임을 보인다.
-
-왜 필요한가:
-  Paper B의 contribution claim이 "ε-stopping reinterpretation"이다.
-  이게 실제로 성립하려면 "같은 N에서 멈추는가"를 수치로 보여야 한다.
-  막연히 "개념적으로 비슷하다"는 reviewer가 인정하지 않는다.
-
-무엇을 증명하는가:
-  ① Bingöl ε=0 stopping은 어느 N에서 발생하는가?
-     → marginal gain δ(N) < 0인 첫 번째 N = N_bingol
-  ② Paper B λ=? 일 때 N*_utility = N_bingol인가?
-     → 등가 λ 값 역산
-  ③ λ_equiv가 물리적으로 의미 있는 범위(0.5~0.9)에 있는가?
-  ④ fill ratio에 따른 λ_equiv 패턴 (task difficulty → deployment cost sensitivity)
+PB_B5: epsilon-to-lambda bridge. The source sets its marginal-gain threshold
+to zero and reports no stopping count; this stage finds the N at which the
+marginal gain first drops below a threshold and backs out the lambda at which
+rule (1) stops at the same N, so that the two rules can be compared.
 """
 def run_PB_B5(pb_b2_results):
     print("=" * 65)
@@ -893,9 +842,9 @@ def main():
                   default=lambda x: float(x) if isinstance(x, np.floating) else x)
     print(f"\n  Results saved: {json_path}")
 
-    # ── Final GO/NO-GO checklist ──
+    # ── Summary checklist ──
     print("\n" + "=" * 65)
-    print("  PAPER B GO/NO-GO CHECKLIST (Bingöl backbone)")
+    print("  SUMMARY CHECKLIST (Bingol component)")
     print("=" * 65)
 
     checks = []

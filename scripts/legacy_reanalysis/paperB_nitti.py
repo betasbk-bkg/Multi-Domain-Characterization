@@ -1,35 +1,34 @@
 """
 ========================================================================
-Paper B — Nitti et al. (2013) Analytical Experiments
-"Utility-Based Stopping Interpretation in Bounded Collective Systems"
+Paper B - Nitti et al. (2025) boundary re-analysis
+Supporting component for the utility-stopping characterization
 
-BongKeun Song | FAU | 2026.05
+Bongkeun Song | FAU | 2026
 
-데이터 소스:
-  Nitti et al. (2013) supplementary xlsx
-  SCM / PSO / MIPA trajectory data
-  Expected format: sheet per algorithm/function combo
-  Columns: [N (swarm size), performance_metric]
+Data source:
+  Nitti et al. (2025), Nat. Commun. 16:6572, supplementary workbook
+  (SCM / PSO / MIPA trajectories). One sheet per algorithm-function
+  combination; columns [N (swarm size), performance metric].
 
-Utility 정의 (Bingöl / Snow 코드와 완전 통일):
-  U(N) = λ·C(N) - (1-λ)·N/N_max
-  λ  : performance weight ∈ {0.3, 0.5, 0.7, 0.9}
-  N_max : sheet별 max observed N (domain ceiling)
+Utility rule (manuscript rule (1), identical across the legacy scripts):
+  U(N) = lambda * S(N) - (1 - lambda) * N / N_budget
+  S(N)     normalized fitted gain against the component's own reference
+  lambda   performance weight, reported at {0.25, 0.50, 0.75, 0.90}
+  N_budget largest N reported by the source for each sheet
 
-실험 구성:
-  PN_N1 : Ceiling fit + AIC/BIC (inverse-sqrt vs 경쟁 모델)
-  PN_N2 : Utility-optimal N* computation
-  PN_N3 : ε-stopping ↔ utility-stopping bridge
-  PN_N4 : Failure regime analysis (landscape별 붕괴 조건)
-  PN_N5 : GO/NO-GO checklist
+Stages:
+  PN_N1 : saturation fit with the three admissible families and AIC selection
+  PN_N2 : utility-optimal N* per sheet
+  PN_N3 : epsilon-to-lambda bridge (equivalent cost weight)
+  PN_N4 : admissibility screen (monotonicity and inverse-square-root R^2)
+  PN_N5 : summary checklist
 
 Output: paperB_nitti_results.json + paperB_nitti_figures.png
-
 Dependencies: numpy, scipy, matplotlib, pandas, openpyxl
 
-사용법:
+Usage:
   python paperB_nitti.py --data ./nitti_data.xlsx
-  python paperB_nitti.py  (DATA_PATH 기본값 사용)
+  python paperB_nitti.py            (uses DATA_PATH)
 ========================================================================
 """
 
@@ -72,16 +71,16 @@ DATA_PATH = './nitti_data.xlsx'
 LAMBDA_VALUES  = [0.25, 0.5, 0.75, 0.9]
 EPSILON_THRESHOLD = 0.01    # Nitti data has wider spacing → 1% threshold
 
-MIN_R2_ACCEPT  = 0.70       # Paper B pilot 기준 (42/63 = 0.67 → 0.70)
+MIN_R2_ACCEPT  = 0.70       # our own screen, set after a pilot pass over this workbook; reported as a count, gates nothing
 
 # Landscape classification (for failure regime analysis)
 # Nitti covers: Sphere, Ackley, Griewank, Schwefel, Styblinski, Rastrigin
 EASY_LANDSCAPES  = {'Sphere', 'Ackley', 'Griewank', 'Styblinski'}
-HARD_LANDSCAPES  = {'Schwefel', 'Rastrigin'}   # 고차원 rugged → 붕괴 예상
+HARD_LANDSCAPES  = {'Schwefel', 'Rastrigin'}   # rugged, higher-dimensional landscapes
 
 
 # ====================================================================
-# SECTION 1: MODEL FUNCTIONS (Bingöl / Snow 코드와 동일)
+# SECTION 1: MODEL FUNCTIONS (shared with the Bingol and Snow scripts)
 # ====================================================================
 
 def ceiling_model(N, a, b):
@@ -308,18 +307,11 @@ def fit_all_models(N, C, alpha_upper=2.0):
 # SECTION 4: EXPERIMENT PN_N1 — Ceiling Fit + AIC/BIC
 # ====================================================================
 """
-목적: Nitti 각 sheet(algorithm × landscape × dimension)에서
-     ceiling model fit + competing model AIC/BIC 비교.
-
-왜 필요한가:
-  Nitti 파일럿에서 42/63 conditions이 R²>0.7이었다.
-  어떤 조건에서 inverse-sqrt가 경쟁 모델보다 나은지,
-  어떤 조건에서 붕괴하는지 체계적으로 매핑한다.
-
-무엇을 증명하는가:
-  ① cooperative regime(Ackley, Griewank)에서 inverse-sqrt R²>0.7
-  ② rugged landscape(Schwefel)에서 ceiling fit 붕괴 → failure regime
-  ③ AIC/BIC 기준으로 inverse-sqrt가 경쟁 모델 대비 어느 위치인가
+PN_N1: fit each sheet (algorithm x landscape x dimension) with the three
+admissible saturating families and select by AIC. The inverse-square-root
+R^2 is also recorded because the workbook is used as a boundary case in the
+manuscript: sheets where that fit is poor, or where the curve is not
+monotone, mark where the framework's admissibility assumptions fail.
 """
 def run_PN_N1(sheets):
     print("=" * 68)
@@ -393,12 +385,8 @@ def run_PN_N1(sheets):
 # SECTION 5: EXPERIMENT PN_N2 — Utility-Optimal N*
 # ====================================================================
 """
-목적: Nitti 각 조건에서 utility-optimal N* 계산.
-
-무엇을 증명하는가:
-  ① cooperative regime에서 N* < N_max (stopping 발생)
-  ② λ에 따른 N* 변화 (robustness)
-  ③ 고차원 rugged landscape: N* 불안정 → limitation
+PN_N2: utility-optimal N* for each sheet under rule (1), over the observed N
+range, for the four representative values of lambda.
 """
 def run_PN_N2(pn_n1_results, sheets):
     print("=" * 68)
@@ -459,8 +447,9 @@ def run_PN_N2(pn_n1_results, sheets):
 # SECTION 6: EXPERIMENT PN_N3 — ε-stopping ↔ Utility Bridge
 # ====================================================================
 """
-목적: Nitti 조건별 ε-stopping과 utility-stopping 수치 비교.
-Bingöl (PB_B5) / Snow (PS_S3)와 동일한 방법으로 λ_equiv 역산.
+PN_N3: epsilon-to-lambda bridge. For each sheet, find the N at which the
+marginal gain first drops below epsilon and back out the lambda at which
+rule (1) stops at the same N. Same procedure as PB_B5 (Bingol) and PS_S3 (Snow).
 """
 def run_PN_N3(pn_n2_results, sheets):
     print("=" * 68)
@@ -527,10 +516,10 @@ def run_PN_N3(pn_n2_results, sheets):
 # SECTION 7: EXPERIMENT PN_N4 — Failure Regime Analysis
 # ====================================================================
 """
-목적: cooperative vs rugged landscape 조건별 inverse-sqrt 성립 여부.
-
-Nitti 파일럿 발견: Schwefel / high-dim rugged에서 inverse-sqrt 붕괴.
-이걸 boundary condition evidence로 명시한다.
+PN_N4: admissibility screen. Records, per sheet, whether the normalized curve
+is non-decreasing (within a 0.02 tolerance) and whether the inverse-square-root
+fit reaches R^2 > MIN_R2_ACCEPT. Non-monotone sheets are excluded by the gate;
+the R^2 screen is reported as a count and gates nothing downstream.
 """
 def run_PN_N4(pn_n1_results):
     print("=" * 68)
@@ -701,7 +690,7 @@ def make_figures(n1, n2, n3, n4, sheets):
 
 
 # ====================================================================
-# SECTION 9: MAIN + GO/NO-GO
+# SECTION 9: MAIN + SUMMARY CHECKLIST
 # ====================================================================
 def main():
     parser = argparse.ArgumentParser()
@@ -755,9 +744,9 @@ def main():
                                      else x))
     print(f"\n  Results saved: {json_path}")
 
-    # ── GO/NO-GO ──
+    # ── Summary checklist ──
     print("\n" + "=" * 68)
-    print("  PAPER B GO/NO-GO — Nitti Domain")
+    print("  SUMMARY CHECKLIST — Nitti component")
     print("=" * 68)
 
     all_inv_r2 = [d['fits']['InvSqrt']['r2']
