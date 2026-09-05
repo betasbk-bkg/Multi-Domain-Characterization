@@ -7,7 +7,10 @@ constant once the family is adopted. This script produces those quantities:
 
     K            half-saturation constant, median and percentile interval
     N95          derived reference, 20 + 19K, continuous and rounded up
-    eta_c        budget-free threshold, 1 / (380 (K + 1))
+    eta_c        exact crossing for the integer optimizer, S(M) - S(M-1) = (K+1)/((K+M)(K+M-1)),
+                 under asymptotic-gain normalization
+    eta_c_continuous  continuous approximation, the price at which the unconstrained optimum
+                 of (A.5) equals M: (K + 1) / (M + K)^2
     rmse_median  median residual RMSE of the replicate fits
     c0_at_bound  fraction of replicates whose offset reaches its lower bound
 
@@ -26,6 +29,8 @@ from __future__ import annotations
 import argparse
 import warnings
 from pathlib import Path
+
+import math
 
 import numpy as np
 import pandas as pd
@@ -62,7 +67,7 @@ def fit_replicates(curves_dir: Path, dataset: str, mode: str):
                 params, _ = curve_fit(
                     michaelis_menten, n, c,
                     p0=[c.min(), c.max() - c.min(), 1.0],
-                    bounds=([0.0, 0.0, 1e-6], [1.0, 1.0, 1e4]),
+                    bounds=([0.0, 0.0, 1e-6], [1.2, 1.2, 1000.0]),
                     maxfev=20000,
                 )
             except Exception:
@@ -87,9 +92,22 @@ def summarise(dataset: str, mode: str, ks, rmses, c0s) -> dict:
         "N95_continuous": round(n95_cont, 2),
         "N95_integer": int(np.ceil(n95_cont)),
         # eta_c falls as K rises, so the interval bounds swap.
-        "eta_c": round(1.0 / (380.0 * (k_med + 1.0)), 5),
-        "eta_c_lo": round(1.0 / (380.0 * (k_hi + 1.0)), 5),
-        "eta_c_hi": round(1.0 / (380.0 * (k_lo + 1.0)), 5),
+        # Under asymptotic-gain normalization S(N) = (N-1)/(K+N), the unconstrained optimum
+        # is N*(eta) = sqrt((K+1)/eta) - K, so the price at which stopping reaches the
+        # reference M is eta_c = (K+1)/(M+K)^2. The reference enters only here, not in the
+        # objective, so eta_c moves with the convention while N*(eta) does not.
+        # exact crossing for the integer optimizer: the price at which the gain from M-1 to M
+        # no longer pays for itself, S(M) - S(M-1) = (K+1)/((K+M)(K+M-1))
+        "eta_c": round((k_med + 1.0) / ((k_med + math.ceil(n95_cont)) * (k_med + math.ceil(n95_cont) - 1.0)), 5),
+        # continuous approximation, where the unconstrained optimum of (A.5) equals M
+        "eta_c_continuous": round((k_med + 1.0) / (math.ceil(n95_cont) + k_med) ** 2, 5),
+        
+        # interval bounds under the same discrete threshold, each evaluated at its own K
+        # and the reference that K implies; eta_c falls as K rises, so the bounds swap
+        "eta_c_lo": round((k_hi + 1.0) / ((k_hi + math.ceil(20.0 + 19.0 * k_hi))
+                                          * (k_hi + math.ceil(20.0 + 19.0 * k_hi) - 1.0)), 5),
+        "eta_c_hi": round((k_lo + 1.0) / ((k_lo + math.ceil(20.0 + 19.0 * k_lo))
+                                          * (k_lo + math.ceil(20.0 + 19.0 * k_lo) - 1.0)), 5),
         "rmse_median": round(float(np.median(rmses)), 6),
         "c0_at_bound_frac": round(float(np.mean(c0s < C0_BOUND_TOL)), 3),
         "c0_bound_tol": C0_BOUND_TOL,

@@ -142,7 +142,7 @@ _load_external_inputs()
 # ====================================================================
 
 def ceiling_model(N, a, b):
-    """Paper B core: C(N) = a - b/√N  (a=ceiling, b>0)"""
+    """Inverse-square-root candidate: C(N) = a - b/sqrt(N) (a=ceiling, b>0)."""
     return a - b / np.sqrt(N)
 
 def exponential_sat(N, a, b):
@@ -366,7 +366,7 @@ def run_PS_S2(ps_s1_results):
         N_max = d['N_max']
         fits = ps_s1_results[task]['fits']
 
-        # Use InvSqrt fit for utility computation (Paper B model)
+        # Use the inverse-square-root fit for the utility computation
         if 'InvSqrt' not in fits:
             print(f"\n  {task}: InvSqrt fit failed, skip")
             continue
@@ -551,7 +551,7 @@ def run_PS_S4(ps_s1_results):
     print(f"\n  Interpretation:")
     print(f"    coverage < 0.3 → observed range too narrow for ceiling ID")
     print(f"    α > bound     → extrapolation artifact, NOT model failure")
-    print(f"    Affect task   → bounded ceiling, high coverage → Paper B anchor")
+    print(f"    Affect task   → bounded ceiling, high coverage")
 
     return results
 
@@ -768,8 +768,8 @@ def main():
         print(f"  {'✓ PASS' if ok else '✗ FAIL'}  {label}")
 
     all_pass = all(ok for _, ok in checks)
-    print(f"\n  Note: Only Affect is Paper B backbone for Snow domain.")
-    print(f"        Other 4 tasks → 'supporting structure evidence' only.")
+    print(f"\n  Note: of the Snow tasks, only Affect meets the admissibility conditions used here.")
+    print(f"        Other 4 tasks → 'structure diagnostics' only.")
     print(f"\n  Overall: {'all checks passed' if all_pass else 'a check failed'}")
     print(f"  Runtime: {time.time()-t0:.1f}s\n")
 

@@ -7,6 +7,8 @@ from pathlib import Path
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import math
+
 import numpy as np
 import pandas as pd
 
@@ -18,7 +20,7 @@ import pandas as pd
 COLW = 3.30
 FIGSIZE = (COLW, 2.05)
 DPI = 600
-PNG_META = {"Software": "PaperB v1.2.0 full reproduction"}
+PNG_META = {"Software": "PaperB v1.3.0 full reproduction"}
 
 # Okabe-Ito, chosen so the series remain distinguishable in greyscale and to readers
 # with the common forms of colour vision deficiency.
@@ -54,14 +56,14 @@ def fig1(out: Path) -> None:
     fig, ax = plt.subplots(figsize=FIGSIZE)
     ax.axis("off")
     boxes = [
-        (0.06, 0.62, 0.26, 0.23, "Retrograde benchmark\nBingol / USL\nNref = Npeak"),
-        (0.37, 0.62, 0.26, 0.23, "Primary closure\nCIFAR-10H, ChaosNLI\nNref = N95"),
-        (0.68, 0.62, 0.26, 0.23, "Supporting / boundary\nSnapshot, Snow, Nitti\nconstraints reported"),
-        (0.24, 0.22, 0.52, 0.23, "Utility framework\nU(N)=lambda*Ctilde(N)-(1-lambda)N/Nbudget\nOutput: budget-aware N*(lambda)"),
+        (0.04, 0.62, 0.28, 0.25, "Retrograde benchmark\nBingol / USL\nNref = Npeak"),
+        (0.36, 0.62, 0.28, 0.25, "Primary evidence\nCIFAR-10H, ChaosNLI\nN95 inside support"),
+        (0.68, 0.62, 0.28, 0.25, "Field boundary\nSnapshot Serengeti\nN95 beyond support"),
+        (0.22, 0.20, 0.56, 0.25, "Utility rule (1)\nprice eta=(1-lambda)/(lambda*Nbudget)\ncapacity Nmax\nOutput: N*(eta, Nmax)"),
     ]
     for x, y, w, h, label in boxes:
         ax.add_patch(plt.Rectangle((x, y), w, h, fill=False, lw=1.8, color="black"))
-        ax.text(x + w / 2, y + h / 2, label, ha="center", va="center", fontsize=5.2)
+        ax.text(x + w / 2, y + h / 2, label, ha="center", va="center", fontsize=4.4)
     arrow = dict(arrowstyle="->", lw=1.4, color="black")
     ax.annotate("", xy=(0.40, 0.45), xytext=(0.19, 0.62), arrowprops=arrow)
     ax.annotate("", xy=(0.50, 0.45), xytext=(0.50, 0.62), arrowprops=arrow)
@@ -167,49 +169,63 @@ def fig5(final: Path, out: Path) -> None:
 
 
 def fig6(final: Path, out: Path) -> None:
-    """Cost-price collapse.
+    """Cost-price collapse and where it stops.
 
-    Every budget definition enters the stopping decision only through the single
-    price eta = (1 - lambda) / (lambda * N_budget), so the integer optima computed
-    under different budgets fall on one curve when plotted against eta. The curve is
-    the closed form of the manuscript appendix evaluated at the fitted K, and the
-    dotted vertical line is the budget-free threshold eta_c = 1 / (380 (K + 1)).
+    The budget enters the cost term only through the price eta = (1 - lambda) / (lambda * N_budget),
+    so the integer optima computed under different budgets fall on one curve when plotted
+    against eta as long as the unconstrained optimum is feasible. The budget is also the
+    capacity over which the optimizer searches (as in recompute_final_closure), so when the
+    unconstrained optimum would exceed it the points leave the curve and sit at the cap.
+    The curve is the closed form of the manuscript appendix at the fitted K; the dotted
+    vertical line is the budget-free threshold eta_c.
     """
     sat = pd.read_csv(final / "final_saturation_summary.csv")
+    util = pd.read_csv(final / "final_utility_summary.csv")
     const = pd.read_csv(final / "replicate_constants.csv")
 
-    def S(n, k):
-        return (n - 1.0) / (0.95 * (k + n))
+    def S(n, k, m=None):
+        # asymptotic-gain normalization, as in recompute_final_closure: S(N) = (N-1)/(K+N).
+        # The reference M enters the reported ratio, not the objective.
+        return (n - 1.0) / (k + n)
 
-    def nstar(k, lam, budget, grid=1000):
-        n = np.arange(1, grid + 1, dtype=float)
-        return int(n[int(np.nanargmax(lam * S(n, k) - (1.0 - lam) * n / budget))])
+    def nstar(k, m, lam, budget):
+        # same semantics as recompute_final_closure.utility_curve: the search runs over
+        # 1..budget, so the budget is both the cost denominator and the feasible capacity
+        n = np.arange(1, int(budget) + 1, dtype=float)
+        return int(n[int(np.nanargmax(lam * S(n, k, m) - (1.0 - lam) * n / budget))])
 
     panels = [
         ("CIFAR-10H", "gold_accuracy", "CIFAR-10H"),
         ("ChaosNLI", "reference_distribution", "ChaosNLI"),
     ]
-    lams = np.linspace(0.005, 0.995, 200)
+    lams = np.linspace(0.01, 0.99, 200)
     markers = ["o", "s", "^"]
     fig, axes = plt.subplots(2, 1, figsize=(COLW, 3.6))
     for ax, (dataset, mode, short) in zip(axes, panels):
         srow = sat[(sat["dataset"] == dataset) & (sat["mode"] == mode)].iloc[0]
         crow = const[(const["dataset"] == dataset) & (const["mode"] == mode)].iloc[0]
-        k = float(crow["K_median"])
+        # the markers are the packaged utility rows themselves, and the curve uses the same
+        # point-estimate K those rows were computed from, so the figure and the table agree
+        # markers, curve and threshold all use the point-estimate fit that the utility rows
+        # were computed from, so the panel shows a single estimand throughout
+        k = float(srow["K_point"]) if "K_point" in srow and pd.notna(srow["K_point"]) else float(crow["K_median"])
         n95 = int(srow["n95"])
         support = int(srow["n_obs_max"])
-        eta_c = float(crow["eta_c"])
-        budgets = [
-            (f"N_support = {support}", support),
-            (f"N95 = {n95}", n95),
-            ("fixed cap = 50", 50),
-        ]
+        m_int = int(math.ceil(n95))
+        eta_c = (k + 1.0) / ((k + m_int) * (k + m_int - 1.0))
+        # the markers are the packaged utility rows themselves, so the figure shows the same
+        # optima the tables report rather than a separate recomputation
+        u = util[(util["dataset"] == dataset) & (util["mode"] == mode)]
+        labels = {"observed_max": f"N_support = {support}", "N95": f"N95 = {n95}",
+                  "fixed_cap_50": "fixed cap = 50"}
         eta = np.logspace(-3.6, 0.05, 400)
-        ax.plot(eta, (np.sqrt((k + 1.0) / (0.95 * eta)) - k) / n95, color="0.25", lw=1.1,
-                label=r"closed form $N^{*}(\eta)/N_{95}$")
-        for (label, budget), marker, colour in zip(budgets, markers, CB):
-            ax.plot((1.0 - lams) / (lams * budget),
-                    [nstar(k, lam, budget) / n95 for lam in lams],
+        ax.plot(eta, (np.sqrt((k + 1.0) / eta) - k) / n95, color="0.25", lw=1.1,
+                label=r"closed form $N^{*}(\eta)/N_{95}$, unconstrained")
+        for (bt, label), marker, colour in zip(labels.items(), markers, CB):
+            rows = u[u["n_budget_type"] == bt].sort_values("eta")
+            if rows.empty:
+                continue
+            ax.plot(rows["eta"], rows["n_star"] / n95,
                     marker, ms=1.8, mew=0, color=colour, alpha=0.85, label=label)
         ax.axhline(1.0, ls="--", lw=0.7, color="0.4")
         ax.axvline(eta_c, ls=":", lw=0.9, color="#D55E00")

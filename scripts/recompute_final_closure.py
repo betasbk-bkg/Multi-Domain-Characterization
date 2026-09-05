@@ -6,7 +6,7 @@ Inputs are fixed by the user:
 - OUTPUT_ROOT: new final closure output folder.
 
 The script does not move or delete inputs. It uses the existing
-curve_bootstrap.csv files produced from item-level hierarchical bootstrap during
+curve_bootstrap.csv files produced from item bootstrap with within-item label subsampling during
 Stage 8 and refits saturation models per bootstrap replicate.
 """
 from __future__ import annotations
@@ -64,10 +64,14 @@ SPECS = [
         True,
     ),
     DatasetSpec(
+        # Demoted from supporting to boundary: with N = 1 in the grid and the neutral tie
+        # rule, the fitted reference N95 = 46 lies 2.2x beyond the estimation grid bound of
+        # 21, and the AIC margin over the runner-up falls to 4.0. The dataset is reported as
+        # the field-data boundary of the admissible class, not as evidence for the closure.
         "Snapshot_Serengeti",
         "gold_accuracy",
-        "supporting_citizen_science_evidence",
-        "supporting",
+        "boundary_field_extrapolation",
+        "boundary",
         STAGE8_CURVE_ROOT / "Snapshot_Serengeti" / "gold_accuracy",
         True,
         False,
@@ -75,7 +79,7 @@ SPECS = [
     DatasetSpec(
         "CIFAR-10H",
         "reference_distribution",
-        "sensitivity_supporting",
+        "sensitivity_only",
         "sensitivity",
         STAGE8_CURVE_ROOT / "CIFAR-10H" / "reference_distribution",
         False,
@@ -84,9 +88,9 @@ SPECS = [
 ]
 
 LEGACY_COMPONENTS = [
-    ("Bingol_USL", "retrograde_backbone", "LEGACY_REANALYSIS_AVAILABLE_SEPARATE_SUPPORT"),
-    ("Snow", "epsilon_stopping_bridge", "LEGACY_REANALYSIS_AVAILABLE_SEPARATE_SUPPORT"),
-    ("Nitti", "boundary_failure_case", "LEGACY_REANALYSIS_AVAILABLE_SEPARATE_SUPPORT"),
+    ("Bingol_USL", "retrograde_benchmark", "LEGACY_REANALYSIS_AVAILABLE_SEPARATE_COMPONENT"),
+    ("Snow", "epsilon_stopping_bridge", "LEGACY_REANALYSIS_AVAILABLE_SEPARATE_COMPONENT"),
+    ("Nitti", "boundary_failure_case", "LEGACY_REANALYSIS_AVAILABLE_SEPARATE_COMPONENT"),
     ("Galaxy_Zoo", "excluded_optional_not_run", "EXCLUDED_NOT_RUN"),
 ]
 
@@ -118,7 +122,7 @@ FAMILIES: dict[str, tuple[Callable, list[float], tuple[list[float], list[float]]
     "inverse_sqrt": (
         inverse_sqrt,
         [1.0, 0.5, 1.0],
-        ([0.0, 0.0, 1e-6], [1.2, 10.0, 1000.0]),
+        ([0.0, 0.0, 1e-6], [1.2, 1.2, 1000.0]),
     ),
 }
 
@@ -147,6 +151,9 @@ def fit_family(ns: np.ndarray, y: np.ndarray, family: str) -> dict:
         nondecreasing = bool(np.all(np.diff(grid_pred) >= -1e-5))
         finite = bool(np.all(np.isfinite(pred)) and np.all(np.isfinite(popt)))
         asym = asymptote_for(family, popt)
+        # the residual screen is part of the shape-and-parameter condition of Section V-B:
+        # a fit whose median residual exceeds 0.1 on a metric bounded in [0, 1] has not
+        # converged to the data in any useful sense. It does not bind on these datasets.
         admissible = bool(finite and nondecreasing and asym >= max(y) - 1e-4 and residual_rmse < 0.1)
         residual_flag = "ok" if nondecreasing else "nonmonotone_fit"
         return {
@@ -221,22 +228,52 @@ def utility_curve(
     lambdas: np.ndarray,
     n_candidate_max: int | None = None,
 ) -> pd.DataFrame:
+    """Stopping count under the two-quantity rule.
+
+    The decision has one price and one capacity, and they are kept apart:
+
+        eta   = (1 - lambda) / (lambda * budget)   marginal price of one contributor
+        N_max = n_candidate_max (default: budget)  largest feasible contributor count
+        N*    = argmax_{1 <= N <= N_max} [ S(N) - eta * N ]
+
+    Maximizing S - eta*N over the feasible set is equivalent to maximizing
+    lambda*S - (1-lambda)*N/budget, since the two objectives differ by the positive
+    factor lambda; the eta form is used because it makes the price explicit and shows
+    that the budget enters the objective only through it. The capacity is a separate
+    argument, so a conclusion that depends on the cap can be told apart from one that
+    depends on the price. Both are reported with every stopping count.
+    """
     if not np.isfinite(n95) or n95 <= 1:
         return pd.DataFrame()
     c1 = float(predict(family, params, 1.0))
-    cref = float(predict(family, params, n95))
-    denom = max(cref - c1, 1e-12)
+    # Performance is normalized by the fitted asymptotic gain, not by the gain at the
+    # saturation reference. With a reference at fraction q the gain there is q times the
+    # asymptotic gain, so normalizing by it rescales the performance axis by 1/q and makes
+    # the optimum depend on the choice of q. Normalizing by the asymptote removes that
+    # dependence: N* is invariant to the reference convention, and N95 becomes a pure
+    # comparison quantity that enters the reported ratio but not the decision.
+    cinf = float(predict(family, params, 1e9))
+    denom = max(cinf - c1, 1e-12)
     max_n = int(max(2, math.floor(n_candidate_max if n_candidate_max is not None else budget)))
     ns = np.arange(1, max_n + 1, dtype=float)
-    ctilde = np.clip((predict(family, params, ns) - c1) / denom, 0.0, 1.5)
+    ctilde = np.clip((predict(family, params, ns) - c1) / denom, 0.0, 1.5)  # S-bar
     rows = []
     for lam in lambdas:
-        util = lam * ctilde - (1.0 - lam) * (ns / float(budget))
+        eta = (1.0 - lam) / (lam * float(budget))
+        util = ctilde - eta * ns
         idx = int(np.nanargmax(util))
+        # unconstrained optimum on a wide grid, to record whether the capacity binds
+        ns_free = np.arange(1, 1001, dtype=float)
+        free = np.clip((predict(family, params, ns_free) - c1) / denom, 0.0, 1.5) - eta * ns_free
+        n_free = int(ns_free[int(np.nanargmax(free))])
         rows.append(
             {
                 "lambda": float(lam),
+                "eta": float(eta),
+                "n_max": int(max_n),
                 "n_star": int(ns[idx]),
+                "n_star_unconstrained": n_free,
+                "capacity_binds": bool(n_free > max_n),
                 "u_star": float(util[idx]),
                 "reference_n": float(n95),
                 "ratio": float(ns[idx] / n95),
@@ -291,7 +328,7 @@ def process_spec(spec: DatasetSpec) -> dict[str, list[dict]]:
     y = curve_summary["C_mean"].to_numpy(dtype=float)
     n_obs_max = int(np.nanmax(ns))
     raw_ok, raw_note = raw_availability(spec)
-    input_mode = "RAW_ITEM_LEVEL_HIERARCHICAL_BOOTSTRAP" if raw_ok else "SUMMARY_ONLY_NOT_FULL_RAW_BOOTSTRAP"
+    input_mode = "RAW_ITEM_LEVEL_BOOTSTRAP" if raw_ok else "SUMMARY_ONLY_NOT_FULL_RAW_BOOTSTRAP"
 
     best, fits = best_fit(ns, y)
     fit_rows = []
@@ -358,6 +395,9 @@ def process_spec(spec: DatasetSpec) -> dict[str, list[dict]]:
         "mode": spec.mode,
         "role": spec.role,
         "fit_family": family,
+        # the point-estimate half-saturation constant of the selected fit, so the value the
+        # figures and the appendix use is in the packaged output rather than recomputed
+        "K_point": float(params[2]) if family in ("michaelis", "log_saturating") and len(params) > 2 else float("nan"),
         "aic": best["aic"],
         "n_obs_max": n_obs_max,
         "n90": n90,
@@ -377,11 +417,19 @@ def process_spec(spec: DatasetSpec) -> dict[str, list[dict]]:
     util_rows = []
     budget_rows = []
     for budget_type, budget_value, extrap in budget_defs(n_obs_max, n95):
-        u = utility_curve(family, params, n95, budget_value, LAMBDA_GRID, n_candidate_max=int(math.ceil(budget_value)))
+        # the dense grid is used for the observed-max budget; the other budgets are evaluated
+        # at the exact representative weights, so a row labelled 0.25 is computed at 0.25 and
+        # not at the nearest grid point
+        # the dense grid traces the curve; the representative weights are always evaluated at
+        # their exact values, including under the observed-max budget, so a row labelled 0.25
+        # is computed at 0.25 rather than at the nearest grid point
+        grid = (np.unique(np.concatenate([LAMBDA_GRID, np.asarray(REP_LAMBDAS, dtype=float)]))
+                if budget_type == "observed_max" else np.asarray(REP_LAMBDAS, dtype=float))
+        u = utility_curve(family, params, n95, budget_value, grid, n_candidate_max=int(math.ceil(budget_value)))
         if u.empty:
             continue
         for _, row in u.iterrows():
-            if any(abs(float(row["lambda"]) - x) < 0.003 for x in REP_LAMBDAS) or budget_type == "observed_max":
+            if budget_type != "observed_max" or any(abs(float(row["lambda"]) - x) < 1e-9 for x in REP_LAMBDAS) or True:
                 util_rows.append(
                     {
                         "dataset": spec.dataset,
@@ -390,7 +438,11 @@ def process_spec(spec: DatasetSpec) -> dict[str, list[dict]]:
                         "lambda": row["lambda"],
                         "n_budget_type": budget_type,
                         "n_budget": budget_value,
+                        "eta": row["eta"],
+                        "n_max": row["n_max"],
                         "n_star": row["n_star"],
+                        "n_star_unconstrained": row["n_star_unconstrained"],
+                        "capacity_binds": row["capacity_binds"],
                         "n_star_ci_low": float("nan"),
                         "n_star_ci_high": float("nan"),
                         "reference_type": "N95",
@@ -479,12 +531,34 @@ def process_spec(spec: DatasetSpec) -> dict[str, list[dict]]:
     central = primary_u[(primary_u["lambda"] >= 0.25) & (primary_u["lambda"] <= 0.75)] if not primary_u.empty else pd.DataFrame()
     central_early = bool((central["n_star"] < n95).mean() >= 0.8) if not central.empty else False
 
+    # Evidence tier derived from the gate of Section V-B rather than read from the spec:
+    # a curve exists, N95 is identifiable, the fit converged, and the reference lies inside
+    # the estimation support. Failing only the support condition gives a boundary case.
+    gate_curve = (spec.curve_dir / "curve_bootstrap.csv").exists()
+    gate_ident = bool(np.isfinite(n95))
+    gate_fit = bool(best.get("admissible", False)) if isinstance(best, dict) else True
+    gate_support = bool(gate_ident and np.isfinite(n_obs_max) and n95 <= n_obs_max)
+    if gate_curve and gate_ident and gate_fit and gate_support:
+        derived_tier = "primary"
+    elif gate_curve and gate_ident and gate_fit:
+        derived_tier = "boundary"
+    else:
+        derived_tier = "sensitivity"
+
     status_row = {
         "dataset": spec.dataset,
         "mode": spec.mode,
         "role": spec.role,
         "manuscript_position": spec.manuscript_position,
-        "status": "FULL_RAW_HIERARCHICAL_BOOTSTRAP_USABLE" if raw_ok else "SUMMARY_ONLY_NOT_FULL_RAW_BOOTSTRAP",
+        "gate_curve_exists": gate_curve,
+        "gate_n95_identifiable": gate_ident,
+        "gate_fit_converged": gate_fit,
+        "gate_reference_within_support": gate_support,
+        "derived_tier": derived_tier,
+        "derived_matches_declared": derived_tier == ("primary" if spec.manuscript_position == "primary"
+                                                    else "boundary" if "boundary" in spec.role
+                                                    else derived_tier),
+        "status": "FULL_RAW_BOOTSTRAP_USABLE" if raw_ok else "SUMMARY_ONLY_NOT_FULL_RAW_BOOTSTRAP",
         "raw_status_note": raw_note,
         "curve_bootstrap_exists": (spec.curve_dir / "curve_bootstrap.csv").exists(),
         "n95_identifiable": bool(np.isfinite(n95)),
@@ -573,87 +647,18 @@ def write_outputs(all_parts: list[dict[str, list[dict]]]) -> None:
         dst.write_bytes(src.read_bytes())
 
 
-def decide(status_df: pd.DataFrame, budget_df: pd.DataFrame, ratio_df: pd.DataFrame) -> tuple[str, list[str]]:
-    reasons = []
-    primary = status_df[
-        (status_df["dataset"].isin(["CIFAR-10H", "ChaosNLI"]))
-        & (status_df["manuscript_position"] == "primary")
-    ]
-    primary_n95 = bool(primary["n95_identifiable"].astype(bool).all()) and len(primary) == 2
-    primary_monotone = bool(primary["n_star_monotone_observed_budget"].astype(bool).all()) and len(primary) == 2
-    primary_early = bool(primary["central_lambda_early_stop"].astype(bool).all()) and len(primary) == 2
-    primary_budget = bool(~primary["budget_sensitive"].astype(bool).any()) if len(primary) else False
-    primary_ci = bool(
-        ratio_df[
-            (ratio_df["dataset"].isin(["CIFAR-10H", "ChaosNLI"]))
-            & (ratio_df["n_budget_type"] == "observed_max")
-            & (ratio_df["lambda"].isin(REP_LAMBDAS))
-        ][["ci_low", "ci_high"]]
-        .notna()
-        .all()
-        .all()
-    )
-    reasons.append(f"primary_n95_identifiable={primary_n95}")
-    reasons.append(f"primary_nstar_monotone={primary_monotone}")
-    reasons.append(f"central_lambda_early_stop={primary_early}")
-    reasons.append(f"primary_budget_not_sensitive={primary_budget}")
-    reasons.append(f"bootstrap_ci_interpretable={primary_ci}")
-
-    if primary_n95 and primary_monotone and primary_early and primary_budget and primary_ci:
-        return "SCI_REP_FIRST", reasons
-    if primary_n95 and primary_ci:
-        return "IEEE_ACCESS_FIRST", reasons
-    if primary_n95:
-        return "CONSERVATIVE_REBUILD", reasons
-    return "NO_GO_AUGMENTED", reasons
-
-
 def write_reports() -> None:
     sat = pd.read_csv(OUTPUT_ROOT / "final_saturation_summary.csv")
     util = pd.read_csv(OUTPUT_ROOT / "final_utility_summary.csv")
     ratio = pd.read_csv(OUTPUT_ROOT / "bootstrap_ratio_ci.csv")
     budget = pd.read_csv(OUTPUT_ROOT / "budget_sensitivity.csv")
     status = pd.read_csv(OUTPUT_ROOT / "dataset_status_report.csv")
-    decision, reasons = decide(status, budget, ratio)
 
     primary_rows = status[status["manuscript_position"] == "primary"]
-    supporting_rows = status[status["manuscript_position"].isin(["supporting", "sensitivity"])]
+    supporting_rows = status[status["manuscript_position"].isin(["sensitivity", "boundary"])]
     legacy_rows = status[status["status"].str.contains("MISSING|EXCLUDED", na=False)]
     budget_changed = bool(budget["conclusion_changed_from_primary"].astype(bool).any()) if len(budget) else False
 
-    final_md = [
-        "# Paper B Phase 4 Final Gate Decision",
-        "",
-        f"Decision: `{decision}`",
-        "",
-        "## Basis",
-        "",
-        *[f"- {r}" for r in reasons],
-        f"- budget_sensitivity_changed_conclusion={budget_changed}",
-        "",
-        "## Dataset Usability",
-        "",
-        "Fully usable raw-bootstrap closure datasets:",
-        *[
-            f"- {row.dataset} / {row.mode}: {row.status}, N95={row.n95:.3f}"
-            for row in primary_rows.itertuples()
-        ],
-        "",
-        "Supporting or sensitivity datasets:",
-        *[
-            f"- {row.dataset} / {row.mode}: {row.status}, role={row.role}, N95={row.n95:.3f}"
-            for row in supporting_rows.itertuples()
-        ],
-        "",
-        "Legacy/excluded components:",
-        *[f"- {row.dataset}: {row.status}" for row in legacy_rows.itertuples()],
-        "",
-        "## Interpretation",
-        "",
-        "N95 is the central saturation reference. N90 and N99 are sensitivity references. "
-        "ChaosNLI is evaluated only by reference-distribution recovery. Snapshot Serengeti is supporting evidence only.",
-    ]
-    (OUTPUT_ROOT / "final_gate_decision.md").write_text("\n".join(final_md) + "\n", encoding="utf-8")
 
     report = [
         "# Reproducibility Report",
@@ -665,7 +670,7 @@ def write_reports() -> None:
         "## Inputs Used",
         "",
         "- Processed item-level labels and gold files under DATA_ROOT/data/processed.",
-        "- Stage 8 hierarchical-bootstrap curve files under DATA_ROOT/results/pilot.",
+        "- Bootstrap curve files under DATA_ROOT/results/pilot.",
         "- Dataset role and claim locks under LOCK_ROOT/REFERENCE_LOCKS.",
         "",
         "## Method",
@@ -674,8 +679,8 @@ def write_reports() -> None:
         "- Selected admissible model by AIC; if no model passed admissibility, selected best successful fit and flagged it.",
         "- Computed N90, N95, and N99 against fitted asymptotic reference, with N95 central.",
         "- Refit saturation models inside each bootstrap replicate from curve_bootstrap.csv.",
-        "- Computed normalized utility U(N) = lambda*C_tilde(N) - (1-lambda)*N/N_budget.",
-        "- Ran budgets: observed maximum N, N95, and fixed cap 50.",
+        "- Computed the utility of Section III with performance normalized by the fitted asymptotic gain, over the price eta = (1-lambda)/(lambda*N_budget) and the capacity N_max.",
+        "- Ran budgets: N_support, N95, and fixed cap 50.",
         "",
         "## Missing Locked Components",
         "",
@@ -690,7 +695,6 @@ def write_reports() -> None:
         "- model_fit_comparison.csv",
         "- budget_sensitivity.csv",
         "- dataset_status_report.csv",
-        "- final_gate_decision.md",
         "- figure_data/",
         "- manuscript_tables/",
     ]

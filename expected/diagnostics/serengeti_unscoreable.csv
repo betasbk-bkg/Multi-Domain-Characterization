@@ -1,0 +1,2 @@
+n_events,n_unscoreable,breakdown,fraction_at_low_N,fraction_at_grid_bound,K_bootstrap_median,K_with_unscoreable_removed,K_shift_pct
+4089,33,impossible=29; rodent=1; eland|topi=1; hartebeest=1; buffalo=1,0.0081,0.0093,1.3553,1.4297,5.5

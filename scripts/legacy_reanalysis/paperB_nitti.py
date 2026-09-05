@@ -84,7 +84,7 @@ HARD_LANDSCAPES  = {'Schwefel', 'Rastrigin'}   # rugged, higher-dimensional land
 # ====================================================================
 
 def ceiling_model(N, a, b):
-    """Paper B core: C(N) = a - b/√N  (a=ceiling, b>0)"""
+    """Inverse-square-root candidate: C(N) = a - b/sqrt(N) (a=ceiling, b>0)."""
     return a - b / np.sqrt(N)
 
 def exponential_sat(N, a, b):
@@ -565,7 +565,7 @@ def run_PN_N4(pn_n1_results):
               f"pass rate={sum(r>=MIN_R2_ACCEPT for r in hard_r2s)}/{len(hard_r2s)}")
 
     print(f"\n  → Failure condition: high-dimensional rugged landscape")
-    print(f"    → boundary condition evidence for Paper B Section: Limitation")
+    print(f"    → reported as a boundary condition, not as evidence for the closure")
 
     return results
 
@@ -788,9 +788,9 @@ def main():
         print(f"  {'✓ PASS' if ok else '✗ FAIL'}  {label}")
 
     all_pass = all(ok for _, ok in checks)
-    print(f"\n  Note: Nitti is 'boundary condition evidence', NOT main backbone.")
-    print(f"        Partial failure → failure regime section in paper.")
-    print(f"\n  Overall: {'GO (boundary evidence)' if all_pass else 'CONDITIONAL — check failures'}")
+    print(f"\n  Note: this component is boundary evidence and supports no primary claim.")
+    print(f"        Sheets failing the screen are reported as the admissibility boundary.")
+    print(f"\n  Overall: {'all checks passed' if all_pass else 'CONDITIONAL — check failures'}")
     print(f"  Runtime: {time.time()-t0:.1f}s\n")
 
 

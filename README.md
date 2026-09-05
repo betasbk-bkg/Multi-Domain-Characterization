@@ -1,12 +1,12 @@
-# Paper B Full Reproduction Package v1.2.0
+# Reproduction Package v1.3.0 — Utility-Optimal Stopping Relative to a Saturation Reference in Bounded Collective-Judgment Systems
 
-This package is the manuscript-facing reproducibility release for Paper B.
+This package is the reproducibility release accompanying the manuscript "Utility-Optimal Stopping Relative to a Saturation Reference in Bounded Collective-Judgment Systems: A Multi-Domain Characterization" (IEEE Access, Access-2026-34846).
 It regenerates the packaged Stage 8 curve-bootstrap intermediates, the
 fitted-saturation closure tables, the utility summaries, the legacy supporting
 JSON outputs, the replicate-level fitted constants of the appendix, and the
 manuscript-facing figure PNGs from the bundled canonical inputs.
 
-Version: v1.2.0
+Version: v1.3.0
 
 Author: Bongkeun Song
 Affiliation: Friedrich-Alexander-Universität Erlangen-Nürnberg (FAU), Germany
@@ -14,7 +14,125 @@ ORCID: 0009-0008-3120-8126
 
 Archived release: https://doi.org/10.5281/zenodo.21320155 — the
 concept DOI, which always resolves to the latest version. The version archived with
-the manuscript is release tag **v1.2.0**.
+the manuscript is release tag **v1.3.0**.
+
+## Changes in v1.3.0
+
+v1.3.0 corrects two defects in the curve estimation and one in the utility definition. The
+reported numbers change; earlier versions of this package should not be used.
+
+- **The estimation grid starts at N = 1.** Earlier versions fitted from N = 2 upward while
+  normalizing performance against C(1), so the baseline was extrapolated from the fit rather
+  than observed. C(1) is now measured.
+- **Ties in the majority vote are scored by their expected accuracy under a uniform draw**
+  (1/m when the gold label is one of m tied labels), replacing a tie-break that took the
+  first label in sort order. The old convention made the result depend on how labels are
+  named: on Snapshot Serengeti it moved the accuracy at N = 2 from 0.812 to 0.745, away from
+  the value C(1) that it must equal in expectation. `common_metrics.majority_score` replaces
+  `majority_label` and is used by both the curve estimation and the standalone helper.
+- **Performance is normalized by the fitted asymptotic gain, not by the gain at the
+  saturation reference.** A reference read at fraction q carries q times the asymptotic gain,
+  so normalizing by it rescaled the performance axis by 1/q and made the optimum depend on
+  the choice of q. Under the new normalization S(N) = (N - 1)/(K + N) for the Michaelis-Menten
+  family, the stopping count is invariant to the reference convention and the reference
+  enters only the reported ratio. `revision_quantities.py` records that the stopping count is
+  unchanged across the 90%, 95% and 99% conventions, and separately reports the sensitivity of
+  K and of the ratio to the estimation grid, which is not an invariance (Appendix A-F).
+- **The utility is written as a price and a capacity.** `utility_curve` takes
+  eta = (1 - lambda)/(lambda * N_budget) as the marginal price and N_max as the feasible
+  capacity, and records both with every stopping count, together with the unconstrained
+  optimum and whether the capacity binds.
+- Snapshot Serengeti is reported as a boundary case rather than supporting evidence: with the
+  corrected estimation its reference lies 2.2 times beyond the estimation grid and its AIC
+  margin over the runner-up falls to about 4.
+- `LICENSE.txt` no longer places the standardized third-party inputs under CC BY 4.0; their
+  upstream licenses are listed in the new `THIRD_PARTY_LICENSES.md`.
+
+## Changes in v1.2.1
+
+v1.2.1 corrects the reproduction runner and extends two scripts. No previously reported
+number changes.
+
+- `scripts/run_full_reproduction.py` now runs `refit_replicate_constants.py` and
+  `revision_quantities.py` before `make_figures.py`, so `fig6_eta_collapse.png` finds the
+  replicate constants it reads and the verifier checks both CSVs. In v1.2.0 a clean run
+  stopped at figure generation with a missing-file error.
+- `make_figures.py` (`fig6`): the optima are now searched over `1..N_budget`, the same
+  semantics as `recompute_final_closure.py`, so the figure shows where the cost-price
+  collapse holds and where the capacity cap binds, rather than an unconstrained search.
+- `refit_replicate_constants.py` adds `eta_c_discrete`, the threshold under the closure
+  code's normalization at the integer reference `M = ceil(N95)`, alongside the continuous
+  approximation.
+- `revision_quantities.py` adds per-replicate model selection (which family AIC selects on
+  each of the B = 200 bootstrap curves, with the bootstrap distribution of the AIC margin)
+  and a reference-fraction sensitivity table (N* at λ = 0.90 when the reference is read at
+  90, 95 and 99 percent of the fitted gain).
+- The evidence-tier strings in the closure status tables follow the manuscript taxonomy:
+  `sensitivity_only`, `retrograde_benchmark`, and `LEGACY_REANALYSIS_AVAILABLE_SEPARATE_COMPONENT`.
+  The earlier `sensitivity_supporting`, `retrograde_backbone` and `..._SEPARATE_SUPPORT` labels
+  described a tier structure the manuscript no longer uses. No reported number changes.
+- Console output of the legacy scripts no longer carries authoring notes. In particular
+  `paperB_bingol.py` no longer prints an unconditional success line for the epsilon-to-lambda
+  map: it now reports how many of the five conditions yield an equivalent weight inside
+  [0.30, 0.95], which on the shipped results is none of them, and the figure summary reports
+  the same count instead of a fixed check mark. The role descriptions in the legacy scripts
+  ("anchor", "backbone", "core claim", "contribution claim") are replaced by neutral
+  descriptions of what each script computes. No packaged result changes.
+- All scripts now share one parameter bound for the three candidate families (level and
+  amplitude at most 1.2, half-saturation at most 1000). The replicate, B = 2000 and derived
+  scripts previously used 1e4 for the half-saturation bound, which moved the fitted constants
+  in the fourth decimal place relative to the main fit.
+- The residual screen in `recompute_final_closure.fit_family` (`residual_rmse < 0.1`) is part
+  of the shape-and-parameter condition of Section V-B and is documented in the code.
+- Representative weights are evaluated at their exact values under every budget definition,
+  including the observed-max budget where a dense grid is also traced; a row labelled 0.25 is
+  computed at 0.25.
+- `final_saturation_summary.csv` carries `K_point`, the half-saturation constant of the selected
+  point-estimate fit, and `fig6_eta_collapse.png` uses it for its curve and threshold so that
+  markers, curve and threshold share one estimand.
+- `revision_quantities.csv` adds the coefficients of variation, the rank correlation between N
+  and the bootstrap mean, grid coverage and the mean increment above N = 20, so the figures the
+  manuscript quotes in Section VI-F are regenerated rather than only stated.
+- `dataset_status_report.csv` now records the four gate conditions of Section V-B, the tier they
+  imply, and whether that tier matches the one declared for the dataset. The tier is derived from
+  the gate rather than read from the specification.
+- `fig6_eta_collapse.png` plots the rows of `final_utility_summary.csv` directly, so the figure and
+  the tables show the same optima; it previously recomputed them on its own grid.
+- The three candidate families now share one set of parameter bounds across every script
+  (level and amplitude at most 1.2). The inverse-square-root amplitude was previously bounded at
+  10 in the main fit and at 1.0 in the replicate scripts; the fitted amplitudes are far below
+  either bound on these datasets, so no reported value changes.
+- Equation (A.6) of the manuscript is the exact crossing for the integer optimizer and (A.7) is its
+  continuous approximation; `eta_c` and `eta_c_continuous` correspond to them in that order.
+- `scripts/serengeti_unscoreable.py` and `expected/diagnostics/serengeti_unscoreable.csv` are new.
+  They regenerate the expert-label coverage figures quoted in Section IV-A: the count of events
+  whose expert label appears among no volunteer label for that event, the fraction of the
+  available set they represent at each end of the grid, and the shift in K when that fraction is
+  removed. The runner produces this file and the verifier checks it.
+- `eta_c_lo` and `eta_c_hi` in `replicate_constants.csv` are now evaluated under the same discrete
+  threshold as `eta_c`, each at its own K and the reference that K implies. They previously used a
+  scaling that belonged to the earlier reference-based normalization.
+- `recompute_final_closure.py` no longer contains the authoring-time venue-selection helper or
+  emits `final_gate_decision.md`; that file was an internal artefact and is not part of the
+  reproduction. Its wording also carried an evidence-tier description that the manuscript no
+  longer uses.
+- `compute_stage8_curves.py` no longer writes `utility_optimum_primary_budget.csv`. That helper
+  normalized performance by the observed span of C rather than by the fitted asymptotic gain, so
+  its optima were not the quantities the manuscript reports; the reported utility is computed in
+  `recompute_final_closure.utility_curve` alone. `common_metrics.utility_optimum` is retained and
+  documented as an unused pilot helper.
+- The `input_mode` field of the closure tables reads `RAW_ITEM_LEVEL_BOOTSTRAP`; the earlier
+  label used "hierarchical", which overstates the resampling design (Section V-A of the paper).
+- `scripts/verify_full_reproduction.py` now also checks `expected/b2000/`. Because the
+  B = 2000 intermediates are not shipped, a standard run reports that summary as not
+  regenerated rather than failing; `run_full_reproduction.py` regenerates it when a
+  `reproduced/stage8_curves_B2000` directory is present.
+- A new script, `scripts/b2000_validation.py`, and a shipped summary,
+  `expected/b2000/b2000_validation_summary.csv`, record the replicate-count check reported in
+  Section V-A of the manuscript: the median K and the 2.5–97.5 percentile interval of the
+  stopping count at the four representative weights, at B = 200 (the shipped curves) and at
+  B = 2000 (a rerun with the same seed). The B = 2000 intermediates are not shipped; the
+  summary is checksummed, and the commands that regenerate it are given below.
 
 ## Changes in v1.2.0
 
@@ -60,10 +178,11 @@ The manuscript reports a replicate-count check at B = 2000. It is reproduced wit
 python scripts/compute_stage8_curves.py data/processed/<dataset> --mode <mode> \
     --B 2000 --seed 20260709 --outdir reproduced/stage8_curves_B2000
 python scripts/refit_replicate_constants.py --curves reproduced/stage8_curves_B2000
+python scripts/b2000_validation.py --b2000 reproduced/stage8_curves_B2000
 ```
 
 The B = 2000 intermediates are not shipped: they are roughly ten times the size of
-the packaged B = 200 curves, and the reported intervals are unchanged by them. The
+the packaged B = 200 curves, and nine of the twelve reported intervals are unchanged by them and three widen by one contributor. The
 packaged expected outputs and the manuscript both use B = 200.
 
 ## Changes in v1.1.0
@@ -95,7 +214,6 @@ every budget and epsilon search to the observed N range. Effects:
 
 The primary CIFAR-10H / ChaosNLI / Snapshot Serengeti closure (Stage 8 bootstrap,
 fitted saturation, N95, rho95, budget sensitivity) is identical within tolerance
-across v1.0.7, v1.1.0 and v1.2.0.
 
 ## Naming: `N_support` in the manuscript, `n_obs_max` in the outputs
 
@@ -221,7 +339,7 @@ standardized canonical inputs and compact legacy numeric inputs that are suffici
 to reproduce the manuscript-facing outputs exactly.
 
 - `data/processed/` contains standardized item-level inputs derived from the admitted
-  datasets for reproducibility of the Paper B analyses. Large `labels_long.csv`
+  datasets for reproducibility of the analyses reported in the manuscript. Large `labels_long.csv`
   files may be gzip-compressed as `labels_long.csv.gz` without changing the
   canonical table contents.
 - `data/legacy_components/bingol_tables.json` contains the numeric table inputs used

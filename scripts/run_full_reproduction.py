@@ -69,6 +69,41 @@ def run_downstream_closure() -> None:
         "--data",
         str(ROOT / "data" / "legacy_components" / "nitti_data.xlsx"),
     ])
+    # replicate-level constants and the derived quantities quoted in the text; both are
+    # read by make_figures (fig6) and checked by the verifier
+    run([
+        sys.executable,
+        "scripts/refit_replicate_constants.py",
+        "--curves",
+        str(REPRO / "stage8_curves"),
+        "--out",
+        str(REPRO / "final_closure" / "replicate_constants.csv"),
+    ])
+    run([
+        sys.executable,
+        "scripts/revision_quantities.py",
+        "--curves",
+        str(REPRO / "stage8_curves"),
+        "--out",
+        str(REPRO / "final_closure" / "revision_quantities.csv"),
+    ])
+    # the B = 2000 replicate-count summary is shipped and checked; it is regenerated only
+    # when a B = 2000 rerun is present, since those intermediates are not shipped
+    if (REPRO / "stage8_curves_B2000").exists():
+        run([
+            sys.executable,
+            "scripts/b2000_validation.py",
+            "--b200", str(REPRO / "stage8_curves"),
+            "--b2000", str(REPRO / "stage8_curves_B2000"),
+            "--out", str(REPRO / "b2000" / "b2000_validation_summary.csv"),
+        ])
+    else:
+        print("[skip] b2000_validation: reproduced/stage8_curves_B2000 not present; "
+              "regenerate it with the commands in README.md to check that file")
+    run([sys.executable, "scripts/serengeti_unscoreable.py",
+         "--curves", str(REPRO / "stage8_curves" / "Snapshot_Serengeti" / "gold_accuracy"),
+         "--constants", str(REPRO / "final_closure" / "replicate_constants.csv"),
+         "--out", str(REPRO / "diagnostics" / "serengeti_unscoreable.csv")])
     run([
         sys.executable,
         "scripts/make_figures.py",

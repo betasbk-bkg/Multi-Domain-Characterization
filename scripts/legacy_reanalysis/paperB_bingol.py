@@ -177,7 +177,7 @@ def n_peak_usl(alpha, beta):
 
 def ceiling_model(N, a, b):
     """
-    Ceiling / inverse-sqrt model (Paper B core model).
+    Ceiling / inverse-square-root model, one of the three candidate families.
     C(N) = a - b/√N   [for RMSE: higher is worse, so a + b/√N]
     For performance (accuracy): C(N) = a - b/√N  (a = ceiling, b > 0)
     """
@@ -388,7 +388,7 @@ representative values of lambda. The reported quantity is N*/N_peak.
 def run_PB_B3(pb_b2_results):
     print("=" * 65)
     print("PB_B3: Utility-Optimal N* vs N_peak")
-    print("  Purpose : Core Paper B claim — N*_utility ≤ N_peak")
+    print("  Purpose : Compare utility-based stopping with the source-reported peak")
     print("  Source  : Table II + utility function U(N) = λC(N) - (1-λ)N/N_max")
     print("=" * 65)
 
@@ -456,7 +456,7 @@ def run_PB_B4():
     # Model definitions: all 2-parameter for fair AIC comparison
     # (except logistic: 3-parameter — penalized by AIC/BIC)
 
-    def m_invsqrt(N, a, b):        # Paper B model
+    def m_invsqrt(N, a, b):        # inverse-square-root candidate
         return a - b / np.sqrt(N)
 
     def m_exponential(N, a, b):    # standard saturation
@@ -555,7 +555,7 @@ rule (1) stops at the same N, so that the two rules can be compared.
 def run_PB_B5(pb_b2_results):
     print("=" * 65)
     print("PB_B5: ε-stopping ↔ Utility-stopping Equivalence Bridge")
-    print("  Purpose : Quantify the ε → λ mapping (Paper B contribution)")
+    print("  Purpose : Compute the epsilon-to-lambda-equivalent diagnostic")
     print("=" * 65)
 
     results = {}
@@ -613,8 +613,14 @@ def run_PB_B5(pb_b2_results):
             'verdict': verdict,
         }
 
-    print(f"\n  → λ_equiv ∈ [0.3, 0.95]: Bingöl ε-stopping = Paper B utility stopping ✓")
-    print(f"  → This is the quantitative bridge for Paper B contribution claim.")
+    in_range = [f for f, r in results.items()
+                if r["lambda_equiv"] is not None and 0.3 <= r["lambda_equiv"] <= 0.95]
+    print(f"\n  → lambda_equiv within [0.30, 0.95]: {len(in_range)} of {len(results)} conditions")
+    if not in_range:
+        print("  → no condition yields an in-range equivalent weight; the epsilon rule and the "
+              "utility rule do not meet on this component under the stated window")
+    else:
+        print(f"  → in-range conditions: {', '.join(str(f) for f in in_range)}")
     return results
 
 
@@ -758,6 +764,10 @@ def make_figures(b1, b2, b3, b4, b5):
     # ── Panel 9: Summary table (text) ──
     ax9 = fig.add_subplot(gs[2, 2])
     ax9.axis('off')
+    _b5 = b5 if isinstance(b5, dict) else {}
+    _b5_vals = [v.get("lambda_equiv") for v in _b5.values() if isinstance(v, dict)]
+    _b5_total = len(_b5_vals)
+    _b5_in_range = sum(1 for v in _b5_vals if v is not None and 0.3 <= v <= 0.95)
     summary_lines = [
         "PAPER B — BINGÖL SUMMARY",
         "─" * 30,
@@ -776,9 +786,9 @@ def make_figures(b1, b2, b3, b4, b5):
         "PB_B4: Model comparison",
         "  See AIC panel →",
         "",
-        "PB_B5: ε ↔ λ bridge",
-        "  λ_equiv ∈ [0.3, 0.9] ✓",
-        "  Quantitative bridge exists ✓",
+        "PB_B5: ε -> lambda map",
+        f"  in [0.30,0.95]: {_b5_in_range}/{_b5_total}",
+        "  see PB_B5 panel",
     ]
     for i, line in enumerate(summary_lines):
         ax9.text(0.05, 0.97 - i * 0.047, line,

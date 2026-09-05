@@ -23,6 +23,11 @@ CHECK_DIRS = [
     "final_closure",
     "legacy_components",
     "figures",
+    # the B = 2000 replicate-count summary is shipped and therefore checked; its
+    # intermediates are not shipped, so a run that does not regenerate them simply
+    # leaves the directory absent and the file is reported as not reproduced
+    "b2000",
+    "diagnostics",
 ]
 
 
@@ -247,6 +252,7 @@ def compare_file(exp: Path, rep: Path) -> tuple[bool, str]:
 
 def main() -> None:
     failures = []
+    notes = []
     checked = 0
     summaries = []
     for d in CHECK_DIRS:
@@ -259,13 +265,21 @@ def main() -> None:
             rel = exp.relative_to(exp_dir)
             rep = rep_dir / rel
             if not rep.exists():
-                failures.append(f"missing reproduced file: {d}/{rel.as_posix()}")
+                if d == "b2000":
+                    # the B = 2000 intermediates are not shipped, so a standard run does not
+                    # regenerate this summary; it is reported rather than failed
+                    notes.append(f"not regenerated in this run: {d}/{rel.as_posix()} "
+                                 "(requires the B = 2000 rerun described in README.md)")
+                else:
+                    failures.append(f"missing reproduced file: {d}/{rel.as_posix()}")
                 continue
             checked += 1
             ok, msg = compare_file(exp, rep)
             summaries.append((d, rel.as_posix(), msg))
             if not ok:
                 failures.append(f"{d}/{rel.as_posix()}: {msg}")
+    for n in notes:
+        print(" -", n)
     if failures:
         print("FULL_REPRODUCTION: FAIL")
         for failure in failures:

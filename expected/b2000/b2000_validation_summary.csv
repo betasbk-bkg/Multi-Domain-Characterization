@@ -1,0 +1,4 @@
+dataset,mode,B_shipped,B_rerun,K_median_shipped,K_median_rerun,K_median_abs_diff,Nstar_CI_lam0.25_shipped,Nstar_CI_lam0.25_rerun,Nstar_CI_lam0.50_shipped,Nstar_CI_lam0.50_rerun,Nstar_CI_lam0.75_shipped,Nstar_CI_lam0.75_rerun,Nstar_CI_lam0.90_shipped,Nstar_CI_lam0.90_rerun,all_widths_equal,max_width_change
+CIFAR-10H,gold_accuracy,200,2000,0.4534,0.456,0.0027,"[4, 5]","[4, 5]","[8, 9]","[8, 9]","[14, 15]","[13, 15]","[24, 27]","[23, 27]",False,1
+ChaosNLI,reference_distribution,200,2000,0.3496,0.347,0.0027,"[4, 4]","[4, 4]","[8, 8]","[8, 8]","[14, 14]","[14, 14]","[24, 25]","[24, 25]",True,0
+Snapshot_Serengeti,gold_accuracy,200,2000,1.3553,1.4052,0.0499,"[3, 3]","[3, 3]","[6, 6]","[6, 6]","[10, 12]","[10, 12]","[19, 21]","[18, 21]",False,1

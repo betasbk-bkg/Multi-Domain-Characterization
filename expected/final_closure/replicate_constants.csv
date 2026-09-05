@@ -1,4 +1,4 @@
-dataset,mode,n_replicates,K_median,K_lo,K_hi,N95_continuous,N95_integer,eta_c,eta_c_lo,eta_c_hi,rmse_median,c0_at_bound_frac,c0_bound_tol
-CIFAR-10H,gold_accuracy,200,0.0644,0.0556,0.0745,21.22,22,0.00247,0.00245,0.00249,0.001977,0.91,1e-06
-ChaosNLI,reference_distribution,200,0.3487,0.2745,0.5611,26.63,27,0.00195,0.00169,0.00206,0.000329,0.075,1e-06
-Snapshot_Serengeti,gold_accuracy,200,0.4879,0.4329,0.5435,29.27,30,0.00177,0.0017,0.00184,0.014032,1.0,1e-06
+dataset,mode,n_replicates,K_median,K_lo,K_hi,N95_continuous,N95_integer,eta_c,eta_c_continuous,eta_c_lo,eta_c_hi,rmse_median,c0_at_bound_frac,c0_bound_tol
+CIFAR-10H,gold_accuracy,200,0.4534,0.2638,0.7452,28.61,29,0.00173,0.00168,0.00141,0.0019,0.002716,0.0,1e-06
+ChaosNLI,reference_distribution,200,0.3496,0.2771,0.4389,26.64,27,0.00187,0.0018,0.00172,0.00192,0.000398,0.075,1e-06
+Snapshot_Serengeti,gold_accuracy,200,1.3553,1.019,1.9509,45.75,46,0.00107,0.00105,0.00083,0.00123,0.010414,0.0,1e-06

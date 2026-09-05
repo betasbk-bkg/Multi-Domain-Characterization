@@ -22,12 +22,21 @@ def normalize_distribution(counts: Dict[str, int]) -> Dict[str, float]:
     return {str(k): float(v) / float(total) for k, v in counts.items()}
 
 
-def majority_label(labels: Sequence[str]) -> str:
+def majority_score(labels: Sequence[str], gold: str) -> float:
+    """Expected accuracy of a majority vote under a uniform draw among tied labels.
+
+    Returns 1/m when the gold label is one of m labels tied for the most votes, and 0
+    otherwise. Resolving ties by taking the first label in sort order would make the score
+    depend on how labels happen to be named; on one dataset that convention alone moved the
+    accuracy at N = 2 by 0.07, away from the value C(1) that it must equal in expectation.
+    This is the rule the curve estimation uses.
+    """
     if len(labels) == 0:
         raise ValueError("empty label sequence")
     counts = Counter(map(str, labels))
-    # deterministic tie-break for reproducibility
-    return sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))[0][0]
+    top = max(counts.values())
+    tied = [k for k, v in counts.items() if v == top]
+    return 1.0 / len(tied) if str(gold) in tied else 0.0
 
 
 def total_variation(p: Dict[str, float], q: Dict[str, float]) -> float:
@@ -56,7 +65,7 @@ def performance_accuracy(labels_by_item: pd.DataFrame, gold: pd.DataFrame, N: in
         if item_id not in gold_map or len(grp) < N:
             continue
         sampled = rng.choice(grp["label"].astype(str).to_numpy(), size=N, replace=False)
-        hits.append(majority_label(sampled) == gold_map[item_id])
+        hits.append(majority_score(sampled, gold_map[item_id]))
     if not hits:
         return float("nan")
     return float(np.mean(hits))
@@ -135,8 +144,17 @@ def bootstrap_curve(labels: pd.DataFrame, gold: pd.DataFrame | None, mode: str, 
                 onehot = np.zeros((max_valid_n, n_label_values), dtype=np.int16)
                 onehot[np.arange(max_valid_n), sample.astype(int)] = 1
                 cumulative = np.cumsum(onehot, axis=0)
-                majorities = np.argmax(cumulative[ns_arr[valid_mask] - 1], axis=1)
-                hits = (majorities == gold_map[item_id]).astype(float)
+                # Ties are scored by the expected accuracy of a uniform draw among the
+                # tied labels, 1/m if the gold label is tied and 0 otherwise. Taking the
+                # first index (np.argmax) would resolve ties by label-code order, which is
+                # the sort order of the label strings and carries no scientific meaning;
+                # at N = 2 that convention alone moved one dataset's accuracy by 0.07.
+                counts_at_n = cumulative[ns_arr[valid_mask] - 1]
+                top = counts_at_n.max(axis=1, keepdims=True)
+                tied = counts_at_n == top
+                m = tied.sum(axis=1)
+                gold_tied = tied[:, gold_map[item_id]] if gold_map[item_id] < tied.shape[1] else np.zeros(tied.shape[0], dtype=bool)
+                hits = np.where(gold_tied, 1.0 / m, 0.0)
                 sums_arr[valid_mask] += float(weight) * hits
                 counts_arr[valid_mask] += float(weight)
             for idx, N in enumerate(Ns):
@@ -201,6 +219,12 @@ def summarize_curve(curve: pd.DataFrame) -> pd.DataFrame:
 
 
 def utility_optimum(Ns: Sequence[int], C: Sequence[float], lambdas: Sequence[float], N_budget: float) -> pd.DataFrame:
+    """Pilot helper, retained for reference and not used by any reported result.
+
+    This normalizes performance by the observed span of C rather than by the fitted
+    asymptotic gain, so its optima are not the quantities reported in the manuscript.
+    The reported utility is computed in recompute_final_closure.utility_curve.
+    """
     Ns_arr = np.asarray(Ns, dtype=float)
     C_arr = np.asarray(C, dtype=float)
     # normalize to [0,1] using observed span unless a fitted C_ref is supplied elsewhere
@@ -211,7 +235,11 @@ def utility_optimum(Ns: Sequence[int], C: Sequence[float], lambdas: Sequence[flo
         C_norm = (C_arr - np.nanmin(C_arr)) / denom
     rows = []
     for lam in lambdas:
-        U = lam * C_norm - (1.0 - lam) * (Ns_arr / float(N_budget))
+        # price form: eta = (1-lambda)/(lambda*N_budget); maximizing S - eta*N over the
+        # feasible set is equivalent to the lambda form up to the positive factor lambda
+        eta = (1.0 - lam) / (lam * float(N_budget))
+        U = C_norm - eta * Ns_arr
         idx = int(np.nanargmax(U))
-        rows.append({"lambda": float(lam), "N_star": int(Ns_arr[idx]), "U_star": float(U[idx])})
+        rows.append({"lambda": float(lam), "eta": float(eta), "N_max": int(np.nanmax(Ns_arr)),
+                     "N_star": int(Ns_arr[idx]), "U_star": float(U[idx])})
     return pd.DataFrame(rows)
