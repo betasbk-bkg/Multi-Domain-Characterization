@@ -1,20 +1,52 @@
-# Reproduction Package v1.3.0 — Utility-Optimal Stopping Relative to a Saturation Reference in Bounded Collective-Judgment Systems
+# Reproduction Package v1.4.0 — Utility-Optimal Stopping Relative to a Saturation Reference in Bounded Collective-Judgment Systems
 
-This package is the reproducibility release accompanying the manuscript "Utility-Optimal Stopping Relative to a Saturation Reference in Bounded Collective-Judgment Systems: A Multi-Domain Characterization" (IEEE Access, Access-2026-34846).
+This package is the reproducibility release accompanying the manuscript "Utility-Optimal Stopping Relative to a Saturation Reference in Bounded Collective-Judgment Systems: A Multi-Domain Characterization" (IEEE Access).
 It regenerates the packaged Stage 8 curve-bootstrap intermediates, the
-fitted-saturation closure tables, the utility summaries, the legacy supporting
+fitted-saturation closure tables, the utility summaries, the legacy-component
 JSON outputs, the replicate-level fitted constants of the appendix, and the
 manuscript-facing figure PNGs from the bundled canonical inputs.
 
-Version: v1.3.0
+Version: v1.4.0
 
-Author: Bongkeun Song
+Author: BongKeun Song
 Affiliation: Friedrich-Alexander-Universität Erlangen-Nürnberg (FAU), Germany
 ORCID: 0009-0008-3120-8126
 
 Archived release: https://doi.org/10.5281/zenodo.21320155 — the
 concept DOI, which always resolves to the latest version. The version archived with
-the manuscript is release tag **v1.3.0**.
+the manuscript is release tag **v1.4.0**.
+
+## Changes in v1.4.0
+
+v1.4.0 adds two checks on the fitted saturation form. No quantity reported by v1.3.0 changes.
+
+- `scripts/holdout_nested_checks.py` fits each candidate family to the curve on N <= 25 and
+  predicts N = 26..50 (with N <= 15 as a sensitivity case), on the mean curve and on all 200
+  bootstrap replicate curves, for CIFAR-10H and ChaosNLI. It also fits the nested
+  four-parameter form c0 + a N^h / (K^h + N^h), which equals the Michaelis-Menten form at
+  h = 1, to all three admitted datasets, and recomputes N95 and the representative stopping
+  counts under it. It uses the fitting, reference and utility routines of
+  `recompute_final_closure.py`, and before writing anything it reproduces the packaged MM
+  AIC, N95, point and bootstrap-median stopping counts, stopping with an error if any differ.
+  Outputs: `expected/diagnostics/holdout_nested_summary.csv`, `holdout_by_replicate.csv`,
+  `nested_by_replicate.csv`.
+- `scripts/population_extrapolation.py` extrapolates each aggregate curve without a curve
+  family: each item's observed label pool is treated as its annotator population and labels
+  are drawn with replacement up to N = 500, with a fixed seed. It reports the exact
+  asymptote, the population N95, the representative stopping counts, and the log-log slope of
+  the remaining gain. The docstring states the sampling model and its limits.
+  Outputs: `expected/diagnostics/population_curves.csv`, `population_summary.csv`.
+- Both scripts run in `run_full_reproduction.py` after the closure step, and their outputs are
+  checked by the verifier with the other diagnostics.
+- The replicate-count check runs through the runner: `run_full_reproduction.py` keeps
+  `reproduced/stage8_curves_B2000` when it clears `reproduced/`, regenerates the B = 2000
+  summary from it, and the verifier compares that summary with the shipped one. See
+  "Replicate count" below.
+- `fig1_framework_architecture.png` is redrawn with larger box text; its content is unchanged.
+- The ChaosNLI license is named CC BY-NC 4.0 (Creative Commons Attribution-NonCommercial 4.0
+  International), as in the LICENSE file of the ChaosNLI repository. No input values change.
+- The author name is given as BongKeun Song throughout. Script headers, console banners and
+  figure metadata carry neutral descriptions; no computed output changes.
 
 ## Changes in v1.3.0
 
@@ -175,11 +207,20 @@ number changes.
 The manuscript reports a replicate-count check at B = 2000. It is reproduced with
 
 ```bash
-python scripts/compute_stage8_curves.py data/processed/<dataset> --mode <mode> \
-    --B 2000 --seed 20260709 --outdir reproduced/stage8_curves_B2000
-python scripts/refit_replicate_constants.py --curves reproduced/stage8_curves_B2000
-python scripts/b2000_validation.py --b2000 reproduced/stage8_curves_B2000
+python scripts/compute_stage8_curves.py data/processed/CIFAR-10H --mode gold_accuracy \
+    --B 2000 --seed 20260709 --maxN 50 --outdir reproduced/stage8_curves_B2000
+python scripts/compute_stage8_curves.py data/processed/ChaosNLI --mode reference_distribution \
+    --B 2000 --seed 20260709 --maxN 50 --outdir reproduced/stage8_curves_B2000
+python scripts/compute_stage8_curves.py data/processed/Snapshot_Serengeti --mode gold_accuracy \
+    --B 2000 --seed 20260709 --maxN 50 --outdir reproduced/stage8_curves_B2000
+python scripts/run_full_reproduction.py --mode full
 ```
+
+The runner keeps `reproduced/stage8_curves_B2000` when it clears `reproduced/`, regenerates
+`reproduced/b2000/b2000_validation_summary.csv` from it, and the verifier compares that file
+with the shipped one (`--mode quick` also works). Do not call `refit_replicate_constants.py` or
+`b2000_validation.py` directly for this check: both default to writing into `expected/` and
+would replace the shipped reference outputs.
 
 The B = 2000 intermediates are not shipped: they are roughly ten times the size of
 the packaged B = 200 curves, and nine of the twelve reported intervals are unchanged by them and three widen by one contributor. The
@@ -366,6 +407,6 @@ differences are handled by the verifier contract above.
 
 ## Citation Metadata
 
-Author and corresponding author: Bong-Keun Song.
+Author and corresponding author: BongKeun Song.
 Affiliation: Friedrich-Alexander-Universitaet Erlangen-Nuernberg (FAU), Erlangen, Germany.
 Contact: bongkeun.song@fau.de.

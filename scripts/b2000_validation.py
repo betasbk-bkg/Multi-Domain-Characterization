@@ -16,7 +16,9 @@ B = 200 curves); this summary is. Regenerate the B = 2000 curves with
     python scripts/compute_stage8_curves.py data/processed/<dataset> --mode <mode> \\
         --B 2000 --seed 20260709 --maxN 50 --outdir reproduced/stage8_curves_B2000
 
-for each of the three admitted datasets, then run this script.
+for each of the three admitted datasets, then run scripts/run_full_reproduction.py, which
+calls this script with --out inside reproduced/ and compares the result with the shipped
+summary. Called directly, this script writes to expected/ by default.
 """
 from __future__ import annotations
 

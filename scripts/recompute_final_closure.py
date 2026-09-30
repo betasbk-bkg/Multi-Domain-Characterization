@@ -1,9 +1,9 @@
-"""Paper B Phase 4 final fitted-saturation and uncertainty closure.
+"""Final fitted-saturation and uncertainty closure.
 
-Inputs are fixed by the user:
-- DATA_ROOT: existing Stage 8 workspace with standardized data and pilot curves.
-- LOCK_ROOT: existing lock/workorder folder.
-- OUTPUT_ROOT: new final closure output folder.
+Inputs are fixed by the package layout:
+- DATA_ROOT: the package root, holding the standardized data under data/processed.
+- STAGE8_CURVE_ROOT: the Stage 8 bootstrap curves (reproduced/stage8_curves, written by the runner).
+- OUTPUT_ROOT: the final closure output folder (reproduced/final_closure).
 
 The script does not move or delete inputs. It uses the existing
 curve_bootstrap.csv files produced from item bootstrap with within-item label subsampling during
@@ -25,7 +25,6 @@ from scipy.optimize import curve_fit
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 DATA_ROOT = PACKAGE_ROOT
 STAGE8_CURVE_ROOT = PACKAGE_ROOT / "reproduced" / "stage8_curves"
-LOCK_ROOT = PACKAGE_ROOT / "reference_locks_not_required_for_package_reproduction"
 OUTPUT_ROOT = PACKAGE_ROOT / "reproduced" / "final_closure"
 
 LAMBDA_GRID = np.linspace(0.01, 0.99, 200)
@@ -664,14 +663,14 @@ def write_reports() -> None:
         "# Reproducibility Report",
         "",
         f"DATA_ROOT: `{DATA_ROOT}`",
-        f"LOCK_ROOT: `{LOCK_ROOT}`",
+        f"STAGE8_CURVE_ROOT: `{STAGE8_CURVE_ROOT}`",
         f"OUTPUT_ROOT: `{OUTPUT_ROOT}`",
         "",
         "## Inputs Used",
         "",
         "- Processed item-level labels and gold files under DATA_ROOT/data/processed.",
-        "- Bootstrap curve files under DATA_ROOT/results/pilot.",
-        "- Dataset role and claim locks under LOCK_ROOT/REFERENCE_LOCKS.",
+        "- Bootstrap curve files (curve_bootstrap.csv, curve_summary.csv) under STAGE8_CURVE_ROOT.",
+        "- Dataset roles and modes as fixed in this script (SPECS).",
         "",
         "## Method",
         "",
@@ -682,10 +681,10 @@ def write_reports() -> None:
         "- Computed the utility of Section III with performance normalized by the fitted asymptotic gain, over the price eta = (1-lambda)/(lambda*N_budget) and the capacity N_max.",
         "- Ran budgets: N_support, N95, and fixed cap 50.",
         "",
-        "## Missing Locked Components",
+        "## Components Outside This Step",
         "",
-        "- Bingol/USL, Snow, and Nitti raw files were not available under DATA_ROOT; marked LEGACY_INPUT_MISSING.",
-        "- Galaxy Zoo was not run and remains excluded/optional not run.",
+        "- The Bingol/USL, Snow, and Nitti components are computed by scripts/legacy_reanalysis/ from data/legacy_components/, not here.",
+        "- Galaxy Zoo is not run and remains excluded.",
         "",
         "## Output Files",
         "",

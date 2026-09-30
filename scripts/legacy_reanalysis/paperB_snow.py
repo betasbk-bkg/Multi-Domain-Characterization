@@ -1,9 +1,9 @@
 """
 ========================================================================
-Paper B - Snow et al. (2008) bridge re-analysis
+Snow et al. (2008) bridge re-analysis
 Supporting component for the utility-stopping characterization
 
-Bongkeun Song | FAU | 2026
+BongKeun Song | FAU | 2026
 
 Data source:
   Snow et al. (2008), "Cheap and fast - but is it good?", EMNLP 2008.
@@ -675,7 +675,7 @@ def make_figures(s1, s2, s3, s4):
     ax6.legend(fontsize=7); ax6.grid(alpha=0.3, axis='y')
 
     plt.suptitle(
-        "Paper B — Snow et al. (2008) Analytical Experiments\n"
+        "Snow et al. (2008) Analytical Experiments\n"
         "Annotation Domain: Utility-Based Stopping Framework",
         fontsize=12, fontweight='bold', y=1.01)
 
@@ -691,7 +691,7 @@ def make_figures(s1, s2, s3, s4):
 def main():
     t0 = time.time()
     print("\n" + "=" * 68)
-    print("  Paper B — Snow et al. (2008) Analytical Experiments")
+    print("  Snow et al. (2008) Analytical Experiments")
     print("  Utility definition UNIFIED with Bingöl code")
     print("=" * 68 + "\n")
 

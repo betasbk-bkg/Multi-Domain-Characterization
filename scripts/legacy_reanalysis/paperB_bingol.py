@@ -1,9 +1,9 @@
 """
 ========================================================================
-Paper B - Atasoy Bingol et al. (2026) retrograde re-analysis
+Atasoy Bingol et al. (2026) retrograde re-analysis
 Supporting component for the utility-stopping characterization
 
-Bongkeun Song | FAU | 2026
+BongKeun Song | FAU | 2026
 
 Purpose:
   Re-analyze the published parameters of Atasoy Bingol et al., IEEE Trans.
@@ -90,7 +90,7 @@ N_FINE  = np.arange(1, 501, dtype=float)   # dense for curve plotting
 N_OBS   = np.arange(1, 30, dtype=float)    # observed range (Fig. 7a)
 
 # Utility function parameters
-# λ: weight on performance vs. cost (Paper B control variable)
+# λ: weight on performance vs. cost (control variable of the utility rule)
 LAMBDA_VALUES = [0.3, 0.5, 0.7, 0.9]
 N_MAX = 500.0   # budget ceiling (normalization reference)
 
@@ -186,7 +186,7 @@ def ceiling_model(N, a, b):
 
 def utility(C_N, N, lam, N_max=N_MAX, c=1.0):
     """
-    Utility function (Paper B framework).
+    Utility function (rule (1) of the manuscript).
     U(N) = λ·C(N) - (1-λ)·cost(N)
     cost(N) = c·N / N_max  (normalized linear deployment cost)
 
@@ -211,7 +211,7 @@ def find_n_star(C_func, lam, N_range=None, N_max=N_MAX):
 
 # ---------------------------------------------------------------------------
 # Manuscript rule (1): normalized-benefit utility, harmonized with the primary
-# closure. This is the rule reported in the Paper B manuscript.
+# closure. This is the rule reported in the manuscript.
 #   U(N) = λ·S(N) − (1−λ)·N/N_budget
 #   S(N) = clip((C(N)−C(1)) / (C(N_ref)−C(1)), 0, 1.5)
 #   N_ref    = N_peak for the retrograde USL curves
@@ -795,7 +795,7 @@ def make_figures(b1, b2, b3, b4, b5):
                  transform=ax9.transAxes, fontsize=8,
                  fontfamily='monospace', va='top')
 
-    plt.suptitle("Paper B — Bingöl (2026) Analytical Experiments\n"
+    plt.suptitle("Bingöl (2026) Analytical Experiments\n"
                  "Utility-Based Stopping in Bounded Collective Systems",
                  fontsize=12, fontweight='bold', y=0.99)
 
@@ -811,7 +811,7 @@ def make_figures(b1, b2, b3, b4, b5):
 def main():
     t_start = time.time()
     print("\n" + "=" * 65)
-    print("  Paper B — Bingöl Analytical Experiments")
+    print("  Bingöl Analytical Experiments")
     print("  Source: Bingöl et al. (2026) Table I & Table II")
     print("=" * 65 + "\n")
 

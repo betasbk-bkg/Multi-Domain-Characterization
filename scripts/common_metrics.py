@@ -1,4 +1,4 @@
-"""Common metrics for Paper B dataset admission and pilot analysis.
+"""Common metrics for dataset admission and pilot analysis.
 
 This module contains dataset-agnostic functions only. Dataset-specific parsing
 must live in adapters/ and output the standardized format described in

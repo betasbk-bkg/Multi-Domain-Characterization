@@ -20,7 +20,7 @@ import pandas as pd
 COLW = 3.30
 FIGSIZE = (COLW, 2.05)
 DPI = 600
-PNG_META = {"Software": "PaperB v1.3.0 full reproduction"}
+PNG_META = {"Software": "Multi-Domain-Characterization reproduction package v1.4.0"}
 
 # Okabe-Ito, chosen so the series remain distinguishable in greyscale and to readers
 # with the common forms of colour vision deficiency.
@@ -53,21 +53,26 @@ def save(fig, path: Path) -> None:
 
 
 def fig1(out: Path) -> None:
-    fig, ax = plt.subplots(figsize=FIGSIZE)
+    # Box text is set at 7.5 pt so that it stays legible when the figure is printed at
+    # single-column width; the earlier 4.4 pt layout was not.
+    fig, ax = plt.subplots(figsize=(COLW, 2.7))
+    ax.set_xlim(0, 1); ax.set_ylim(0, 1)
     ax.axis("off")
+    fs = 7.5
     boxes = [
-        (0.04, 0.62, 0.28, 0.25, "Retrograde benchmark\nBingol / USL\nNref = Npeak"),
-        (0.36, 0.62, 0.28, 0.25, "Primary evidence\nCIFAR-10H, ChaosNLI\nN95 inside support"),
-        (0.68, 0.62, 0.28, 0.25, "Field boundary\nSnapshot Serengeti\nN95 beyond support"),
-        (0.22, 0.20, 0.56, 0.25, "Utility rule (1)\nprice eta=(1-lambda)/(lambda*Nbudget)\ncapacity Nmax\nOutput: N*(eta, Nmax)"),
+        (0.01, 0.56, 0.31, 0.40, "Retrograde\nbenchmark\nreference\n$N_{\\mathrm{peak}}$"),
+        (0.345, 0.56, 0.31, 0.40, "Primary\nCIFAR-10H\nChaosNLI\n$N_{95}$ inside\nsupport"),
+        (0.68, 0.56, 0.31, 0.40, "Field boundary\nSnapshot\nSerengeti\n$N_{95}$ beyond\nsupport"),
+        (0.10, 0.02, 0.80, 0.36, "Utility rule (1)\nprice $\\eta=(1-\\lambda)/(\\lambda N_{\\mathrm{budget}})$\n"
+                                 "capacity $N_{\\max}$  $\\rightarrow$  $N^{*}(\\eta, N_{\\max})$"),
     ]
     for x, y, w, h, label in boxes:
-        ax.add_patch(plt.Rectangle((x, y), w, h, fill=False, lw=1.8, color="black"))
-        ax.text(x + w / 2, y + h / 2, label, ha="center", va="center", fontsize=4.4)
-    arrow = dict(arrowstyle="->", lw=1.4, color="black")
-    ax.annotate("", xy=(0.40, 0.45), xytext=(0.19, 0.62), arrowprops=arrow)
-    ax.annotate("", xy=(0.50, 0.45), xytext=(0.50, 0.62), arrowprops=arrow)
-    ax.annotate("", xy=(0.58, 0.45), xytext=(0.81, 0.62), arrowprops=arrow)
+        ax.add_patch(plt.Rectangle((x, y), w, h, fill=False, lw=1.0, color="black"))
+        ax.text(x + w / 2, y + h / 2, label, ha="center", va="center", fontsize=fs, linespacing=1.25)
+    arrow = dict(arrowstyle="->", lw=1.0, color="black")
+    ax.annotate("", xy=(0.30, 0.38), xytext=(0.165, 0.56), arrowprops=arrow)
+    ax.annotate("", xy=(0.50, 0.38), xytext=(0.50, 0.56), arrowprops=arrow)
+    ax.annotate("", xy=(0.70, 0.38), xytext=(0.835, 0.56), arrowprops=arrow)
     save(fig, out / "fig1_framework_architecture.png")
 
 
@@ -79,7 +84,7 @@ def fig2(final: Path, out: Path) -> None:
         ("Snapshot_Serengeti_gold_accuracy_fit_curve.csv", "Snapshot Serengeti gold accuracy"),
     ]
     # Snapshot Serengeti is fitted on a grid bounded at N_support = 21 while its N95 is
-    # 30, so the segment past 21 is an extrapolation of the fit and is drawn dotted.
+    # 47, so the segment past 21 is an extrapolation of the fit and is drawn dotted.
     grid_bound = {"Snapshot_Serengeti_gold_accuracy_fit_curve.csv": 21}
     for (name, label), colour in zip(curves, CB):
         df = pd.read_csv(final / "figure_data" / name)

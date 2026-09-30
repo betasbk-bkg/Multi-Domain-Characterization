@@ -1,6 +1,6 @@
 Reproduction package for "Utility-Optimal Stopping Relative to a Saturation Reference in Bounded Collective-Judgment Systems" — license
 
-Copyright (c) 2026 Bongkeun Song
+Copyright (c) 2026 BongKeun Song
 
 WHAT THIS LICENSE COVERS
 
@@ -20,7 +20,7 @@ are NOT relicensed here. They remain governed by the terms of their original sou
 those terms apply to any use or redistribution of them:
 
   data/processed/CIFAR-10H/        CIFAR-10H human labels, CC BY-NC-SA 4.0
-  data/processed/ChaosNLI/         ChaosNLI, CC-NC 4.0
+  data/processed/ChaosNLI/         ChaosNLI, CC BY-NC 4.0
   data/processed/Snapshot_Serengeti/
                                    Snapshot Serengeti, Community Data License Agreement,
                                    permissive variant

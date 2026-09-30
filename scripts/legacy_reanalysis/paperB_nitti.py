@@ -1,9 +1,9 @@
 """
 ========================================================================
-Paper B - Nitti et al. (2025) boundary re-analysis
+Nitti et al. (2025) boundary re-analysis
 Supporting component for the utility-stopping characterization
 
-Bongkeun Song | FAU | 2026
+BongKeun Song | FAU | 2026
 
 Data source:
   Nitti et al. (2025), Nat. Commun. 16:6572, supplementary workbook
@@ -679,7 +679,7 @@ def make_figures(n1, n2, n3, n4, sheets):
     ax6.legend(fontsize=6); ax6.grid(alpha=0.3)
 
     plt.suptitle(
-        "Paper B — Nitti et al. Analytical Experiments\n"
+        "Nitti et al. Analytical Experiments\n"
         "Swarm Optimization Domain: Utility-Based Stopping Framework",
         fontsize=12, fontweight='bold', y=1.01)
 
@@ -700,7 +700,7 @@ def main():
 
     t0 = time.time()
     print("\n" + "=" * 68)
-    print("  Paper B — Nitti Analytical Experiments")
+    print("  Nitti Analytical Experiments")
     print("  Utility definition UNIFIED with Bingöl / Snow codes")
     print("=" * 68 + "\n")
 

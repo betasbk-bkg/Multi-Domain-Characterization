@@ -1,0 +1,4 @@
+dataset,mode,C_1,C_inf,population_N95,tail_slope_N25_500,tail_slope_N50_500,tail_slope_N100_500,shortfall_at_4,shortfall_at_4_points,n_star_lambda_0.25,n_star_lambda_0.50,n_star_lambda_0.75,n_star_lambda_0.90,items_simulated,items_total
+CIFAR-10H,accuracy,0.94868,0.9922,18,-1.446,-1.609,-1.732,0.3046,1.325,5,7,13,19,6432.0,10000.0
+Snapshot_Serengeti,accuracy,0.81249,0.96099,46,-0.839,-0.81,-0.788,0.4875,7.24,3,7,11,19,3416.0,4089.0
+ChaosNLI,distribution,0.78504,1.0,29,-1.037,-1.047,-1.049,0.3158,6.789,4,8,14,25,,
